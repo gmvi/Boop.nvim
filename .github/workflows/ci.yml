@@ -1,0 +1,95 @@
+name: Continuous integration
+
+on:
+  push:
+    branches: [trunk, staging, trying]
+  pull_request:
+    branches: [trunk]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+      - name: Install rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          components: clippy, rustfmt
+          rust-version: 1.51.0
+      - name: Cache cargo
+        uses: actions/cache@v2.1.6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Dependencies
+        run: sudo apt-get update -y && sudo apt-get install -y libgtk-3-dev libgtksourceview-3.0-dev
+      - name: Check
+        run: cargo check
+      - name: Test
+        run: cargo test -- --nocapture
+      - name: Fmt
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+
+  snap:
+    name: snap
+    if: ${{ (github.ref == 'refs/heads/trying') || (github.ref == 'refs/heads/staging') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+      - uses: snapcore/action-build@v1
+
+  flatpak:
+    if: ${{ (github.ref == 'refs/heads/trying') || (github.ref == 'refs/heads/staging') }}
+    runs-on: ubuntu-latest
+    container:
+      image: docker.io/bilelmoussaoui/flatpak-github-actions
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+      - name: Dependency (Python TOML)
+        run: sudo dnf install -y python3-toml
+      - name: Generate sources
+        run: bash gen-sources.sh
+      - uses: bilelmoussaoui/flatpak-github-actions@v3
+        with:
+          manifest-path: "flatpak/fyi.zoey.Boop-GTK.json"
+
+  metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Dependencies
+        run: sudo apt-get install -y appstream-util desktop-file-utils
+      - name: Validate data/fyi.zoey.Boop-GTK.metainfo.xml
+        run: appstream-util validate-relax data/fyi.zoey.Boop-GTK.metainfo.xml
+      - name: Validate data/fyi.zoey.Boop-GTK.desktop
+        run: desktop-file-validate data/fyi.zoey.Boop-GTK.desktop
+
+  bors:
+    name: bors
+    if: ${{ success() && ((github.ref == 'refs/heads/trying') || (github.ref == 'refs/heads/staging')) }}
+    needs:
+      - ci
+      - flatpak
+      - snap
+      - metadata
+    runs-on: ubuntu-latest
+    steps:
+      - name: CI succeeded
+        run: exit 0
