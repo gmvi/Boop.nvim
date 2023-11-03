@@ -1,78 +1,28 @@
 use io::Write;
 use std::{env, fs, io, path::Path, process::Command};
+use clap_complete::{generate_to, shells};
+use clap::IntoApp;
 
-const XML_HEADER: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
-<gresources>
-    <gresource prefix="/fyi/zoey/Boop-GTK">
-"#;
+include!("src/cli.rs");
 
-const XML_FOOTER: &str = r#"    </gresource>
-</gresources>
-"#;
+fn build_boop_cli_resources() {
+    let mut app = Cli::into_app();
+    app.set_bin_name("boop");
 
-fn add_files(xml: &mut String, folder: &str) {
-    for path in fs::read_dir(folder).unwrap() {
-        let path = path.as_ref().unwrap();
-
-        if path.path().display().to_string().ends_with('~') {
-            continue;
-        }
-
-        if path.path().is_file() {
-            xml.push_str(&format!(
-                "\t\t<file>{}</file>\n",
-                path.path()
-                    .display()
-                    .to_string()
-                    .replace("\\", "/")
-                    .trim_start_matches("resources/")
-            ));
-        } else if path.path().is_dir() {
-            add_files(xml, &path.path().display().to_string());
-        } else {
-            panic!("expected file or folder");
-        }
-    }
+    let out_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("completions");
+    // don't actually do anything anymore, but keep this here in case we want to have clap build completions for non-bash shells
+    
+    //std::fs::create_dir_all(&out_dir);
+    ////    format!( "Failed to create scripts directory in config: {}", out_dir.display())
+    //
+    //// no bash here because this version of clap doesn't support dynamic completions
+    //// using the --list-scripts flag, so there's a custom one instead
+    //generate_to(shells::Fish, &mut app, "boop", out_dir.clone());
+    //generate_to(shells::Zsh, &mut app, "boop", out_dir.clone());
+    //generate_to(shells::PowerShell, &mut app, "boop", out_dir.clone());
+    //generate_to(shells::Elvish, &mut app, "boop", out_dir.clone());
 }
 
 fn main() {
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let mut resources = Path::new(&out_dir).to_path_buf();
-    resources.push("resources");
-
-    fs::create_dir_all(resources.clone()).unwrap();
-    fs_extra::dir::copy("resources", out_dir, &{
-        let mut options = fs_extra::dir::CopyOptions::new();
-        options.copy_inside = true;
-        options.overwrite = true;
-        options
-    })
-    .unwrap();
-
-    let mut xml = String::with_capacity(XML_HEADER.len() + XML_FOOTER.len() + 1024);
-
-    xml.push_str(XML_HEADER);
-    add_files(&mut xml, "resources");
-    xml.push_str(XML_FOOTER);
-
-    let resource_xml = {
-        let mut f = resources.clone();
-        f.push("resources.xml");
-        f
-    };
-    let mut file = fs::File::create(resource_xml).unwrap();
-    file.write_all(xml.as_bytes()).unwrap();
-
-    let mut cmd = Command::new(if let Ok(path) = env::var("GLIB_COMPILE_RESOURCES") {
-        path
-    } else if cfg!(target_os = "window") {
-        "glib-compile-resources.exe".to_owned()
-    } else {
-        "glib-compile-resources".to_owned()
-    });
-
-    cmd.arg("resources.xml")
-        .current_dir(resources)
-        .output()
-        .expect("failed to compile resources");
+    build_boop_cli_resources();
 }
