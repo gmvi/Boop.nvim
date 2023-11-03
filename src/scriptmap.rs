@@ -10,7 +10,8 @@ use std::{
     time::Duration,
 };
 
-use crate::{script::Script, XDG_DIRS};
+use crate::script::Script;
+use crate::util::get_script_dirs;
 
 pub(crate) struct ScriptMap(pub BTreeMap<String, Script>);
 
@@ -19,30 +20,20 @@ pub(crate) struct ScriptMap(pub BTreeMap<String, Script>);
 pub(crate) struct Scripts;
 
 impl ScriptMap {
-    pub(crate) fn new() -> (Self, Option<Report>) {
+    pub(crate) fn new() -> Self {
         let mut scripts = ScriptMap(BTreeMap::new());
 
         scripts.load_internal();
 
-        for mut dir in XDG_DIRS.get_config_dirs() {
-            dir.push("scripts");
-
-            if std::fs::read_dir(&dir).is_ok() {
-                // load scripts (overrides any internal scripts)
-                scripts.load_path(&dir).ok();
-            }
+        let mut script_dirs = get_script_dirs();
+        // get_script_dirs returns paths in order of precendence, so load them
+        // in reverse order to override scripts properly
+        script_dirs.reverse();
+        for script_dir in script_dirs {
+            scripts.load_path(&script_dir).ok();
         }
 
-        // load user scripts overriding internal and global scripts
-        let load_result = scripts.load_path(&ScriptMap::user_scripts_dir());
-
-        (scripts, load_result.err())
-    }
-
-    fn user_scripts_dir() -> PathBuf {
-        let mut dir = XDG_DIRS.get_config_home();
-        dir.push("scripts");
-        dir
+        scripts
     }
 
     // load scripts included in the binary
@@ -136,11 +127,11 @@ impl ScriptMap {
         // configure and start watcher
         match watcher {
             Ok(mut watcher) => {
-                let script_dir = &ScriptMap::user_scripts_dir();
+                let script_dir = &get_script_dirs()[0];
 
                 info!("watching {}", script_dir.display());
 
-                if let Err(watch_error) = watcher.watch(&script_dir, RecursiveMode::Recursive) {
+                if let Err(watch_error) = watcher.watch(script_dir, RecursiveMode::Recursive) {
                     error!("watch start error: {}", watch_error);
                     return;
                 }

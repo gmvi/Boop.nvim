@@ -4,18 +4,17 @@ use clap::{
 };
 
 #[derive(Parser, Debug)]
-#[clap(override_usage = "echo blah blah | boop <SCRIPT_NAME>")]
+#[command(version, name = "boop", bin_name = "boop")]
+#[command(override_usage = "echo blah blah | boop <SCRIPT_NAME>")]
 // Using trailing_var_arg here so the user can forget to quote the script name.
 // Otherwise, Clap would abort due to too many args. This requires the last
 // arg to be multiple_values, so tell Clap to require at least one arg.
-#[clap(trailing_var_arg=true, arg_required_else_help=true)]
-#[clap(group(ArgGroup::new("op_mode").required(true).args(&[
-    "list_scripts", "script_name"
-])))]
+#[command(trailing_var_arg=true, arg_required_else_help=true)]
+#[group(id = "op_mode", required = true)]
 pub(crate) struct Cli {
-    #[clap(long, short='l')]
+    #[arg(long, short='l', group="op_mode")]
     pub list_scripts: bool,
 
-    #[clap(multiple_values=true)]
+    #[arg(group="op_mode")]
     pub script_name: Vec<String>,
 }

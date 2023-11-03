@@ -1,8 +1,6 @@
 #![forbid(unsafe_code)]
 
 #[macro_use]
-extern crate lazy_static;
-#[macro_use]
 extern crate log;
 #[macro_use]
 extern crate eyre;
@@ -21,36 +19,28 @@ use executor::{
 use scriptmap::ScriptMap;
 use cli::Cli;
 
-use eyre::{Context, Result};
+use eyre::Result;
 use clap::Parser;
-
-lazy_static! {
-    static ref XDG_DIRS: xdg::BaseDirectories = match xdg::BaseDirectories::with_prefix("boop-gtk")
-    {
-        Ok(dirs) => dirs,
-        Err(err) => panic!("Unable to find XDG directorys: {}", err),
-    };
-}
 
 
 fn main() -> Result<()>{
+
     let args: Cli = cli::Cli::parse();
 
-    // create user scripts directory if it doesn't exist
-    let scripts_dir: std::path::PathBuf = XDG_DIRS.get_config_home().join("scripts");
-    std::fs::create_dir_all(&scripts_dir).wrap_err_with(|| {
-        format!(
-            "Failed to create scripts directory in config: {}",
-            scripts_dir.display()
-        )
-    })?;
+    // create main user scripts directory if it doesn't exist
+    let scripts_dir = &util::get_script_dirs()[0];
+    std::fs::create_dir_all(scripts_dir);
+    // don't fail if the create_dir_all fails, and don't eprint! anything either
+    //.wrap_err_with(|| {
+    //    format!(
+    //        "Failed to create scripts directory in config: {}",
+    //        scripts_dir.display()
+    //    )
+    //})?;
     
     // load scripts
-    let (mut script_map, load_script_error) = ScriptMap::new();
-    if let Some(error) = load_script_error {
-        eprintln!("Error loading scripts: {}", &error);
-        //TODO: do the above the correct way
-    }
+    // TODO: have ScriptMap log any errors loading the scripts
+    let mut script_map = ScriptMap::new();
 
     // read command args
     let script_name = args.script_name.join(" ");
@@ -68,7 +58,7 @@ fn main() -> Result<()>{
             .filter(|(name, _)| name.to_lowercase().starts_with(&script_name_lower))
             .collect();
     if matches.len() != 1 {
-        // can't run a script here, so output the input and then print an error message
+        // can't autocomplete the script name. Output the input and then print an error message
         std::io::copy(&mut std::io::stdin(), &mut std::io::stdout());
         if matches.len() == 0 {
             eprintln!("No scripts found with name: {}", script_name);

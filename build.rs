@@ -1,12 +1,12 @@
 use io::Write;
 use std::{env, fs, io, path::Path, process::Command};
 use clap_complete::{generate_to, shells};
-use clap::IntoApp;
+use clap::CommandFactory;
 
 include!("src/cli.rs");
 
 fn build_boop_cli_resources() {
-    let mut app = Cli::into_app();
+    let mut app = Cli::command();
     app.set_bin_name("boop");
 
     let out_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("completions");

@@ -1,7 +1,7 @@
-use crate::{scriptmap::Scripts, XDG_DIRS};
+use crate::scriptmap::Scripts;
 use dirty2::Dirty;
 use eyre::{Context, ContextCompat, Result};
-use rusty_v8 as v8;
+use v8;
 use std::{
     cell::RefCell,
     convert::TryFrom,
@@ -13,7 +13,10 @@ use std::{
     rc::Rc,
     sync::Once,
     time::Instant,
+    path::PathBuf,
 };
+
+use crate::util;
 
 static BOOP_WRAPPER_START: &str = "
 /***********************************
@@ -203,7 +206,7 @@ impl Executor {
             let start = Instant::now();
 
             // initialize V8
-            let platform = v8::new_default_platform().unwrap();
+            let platform = v8::new_default_platform(0, false).make_shared();
             v8::V8::initialize_platform(platform);
             v8::V8::initialize();
 
@@ -256,8 +259,7 @@ impl Executor {
                 Scripts::get(&internal_path)
                     .ok_or_else(|| eyre!("No internal script with path \"{}\"", path))?
                     .to_vec(),
-            )
-            .wrap_err("Problem with file encoding")?;
+            ).wrap_err("Problem with file encoding")?;
 
             return Ok(raw_source);
         }
@@ -265,9 +267,10 @@ impl Executor {
         let mut external_path = if cfg!(test) {
             env::temp_dir()
         } else {
-            let mut path = XDG_DIRS.get_config_home();
-            path.push("scripts");
-            path
+            // Only allows loading libraries from the scripts directory with
+            // most precedence (e.g. ~/.config/boop or AppData\Local\boop)
+            // TODO: should libraries be loadable from other directories?
+            util::get_script_dirs()[0].clone()
         };
         external_path.push(&path);
 
@@ -447,7 +450,7 @@ impl Executor {
                 .main_function
                 .as_ref()
                 .wrap_err("main_function not initialized")?
-                .get(scope);
+                .open(scope);
             let escape_scope = &mut v8::EscapableHandleScope::new(scope);
             let tc_scope = &mut v8::TryCatch::new(escape_scope);
 
@@ -654,6 +657,7 @@ impl Executor {
         _key: v8::Local<'_, v8::Name>,
         value: v8::Local<'_, v8::Value>,
         _args: v8::PropertyCallbackArguments<'_>,
+        _rv: v8::ReturnValue<'_>,
     ) {
         let new_value = value
             .to_string(scope)
@@ -699,6 +703,7 @@ impl Executor {
         _key: v8::Local<'_, v8::Name>,
         value: v8::Local<'_, v8::Value>,
         _args: v8::PropertyCallbackArguments<'_>,
+        _rv: v8::ReturnValue<'_>,
     ) {
         let new_value = value
             .to_string(scope)
@@ -744,6 +749,7 @@ impl Executor {
         _key: v8::Local<'_, v8::Name>,
         value: v8::Local<'_, v8::Value>,
         _args: v8::PropertyCallbackArguments<'_>,
+        _rv: v8::ReturnValue<'_>,
     ) {
         let new_value = value
             .to_string(scope)
