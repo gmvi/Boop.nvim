@@ -9,4 +9,4 @@ extern crate fs_extra;
 pub mod executor;
 pub mod script;
 pub mod scriptmap;
-mod util;
+pub mod util;

@@ -13,14 +13,14 @@ use std::{
 use crate::script::Script;
 use crate::util::get_script_dirs;
 
-pub(crate) struct ScriptMap(pub BTreeMap<String, Script>);
+pub struct ScriptMap(pub BTreeMap<String, Script>);
 
 #[derive(RustEmbed)]
 #[folder = "submodules/Boop/Boop/Boop/scripts/"]
 pub(crate) struct Scripts;
 
 impl ScriptMap {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let mut scripts = ScriptMap(BTreeMap::new());
 
         scripts.load_internal();

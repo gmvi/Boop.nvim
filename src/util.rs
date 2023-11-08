@@ -21,8 +21,12 @@ impl StringExt for String {
     }
 }
 
-// returns script dirs in order of precedence
-pub(crate) fn get_script_dirs() -> Vec<PathBuf> {
+/// returns external script dirs in order of precedence
+/// Currently, Boop-rs only loads custom libraries from a single script dir.
+/// This dir will be the first element returned from get_script_dirs() and will
+/// be either ~/.config/boop, %appdata%/local/boop or ~/Library/Application Support.
+/// This behavior seems likely to change in the future.
+pub fn get_script_dirs() -> Vec<PathBuf> {
     let mut dirs = vec![];
     if let Some(sys_dirs) = directories::BaseDirs::new() {
         let mut base_dirs = vec![];
@@ -33,10 +37,9 @@ pub(crate) fn get_script_dirs() -> Vec<PathBuf> {
         } else if OS == "linux" {
             base_dirs.push(sys_dirs.data_dir());
         }
-        // Only boop-gtk sets a default user scripts directory
-        // Support a ~/.config/boop directory (or equivalent) on all platforms
         for base in base_dirs {
             dirs.push(PathBuf::from(base.join("boop")));
+            // Only boop-gtk (linux) sets a default user scripts directory
             if OS == "linux" {
                 dirs.push(PathBuf::from(base.join("boop-gtk/scripts")));
             }

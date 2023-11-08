@@ -1,7 +1,6 @@
 [package]
 name = "boop"
-build = "build.rs"
-version = "0.1.0-alpha"
+version = "0.1.0"
 authors = ["George Matter"]
 edition = "2018"
 description = """A text-transform engine using javascript built into Boop.vim.
@@ -9,22 +8,14 @@ description = """A text-transform engine using javascript built into Boop.vim.
 Inspired by @IvanMathy's Boop. Credit to @zoeyfyi for the rust code.
 """
 license = "MIT"
-homepage = "https://github.com/gmvi/boop-cli/"
-repository = "https://github.com/gmvi/boop-cli/"
-keywords = ["linux", "javascript"]
+homepage = "https://github.com/gmvi/boop-rs/"
+repository = "https://github.com/gmvi/boop-rs/"
+keywords = ["cross-platform", "javascript"]
 exclude = [
 ]
 
 [profile.dev]
 lto = "off"
-
-[lib]
-name = "boop"
-path = "src/lib.rs"
-
-[[bin]]
-name = "boop"
-path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -52,7 +43,6 @@ eyre = "0.6.5"
 color-eyre = "0.5.11"
 crossbeam = "0.8.0"
 fs_extra = "1.2.0"
-clap = { version = "=4.2", features = ["derive"] }
 home = "0.5.5"
 directories = "5.0"
 # Pin deps to build on rust 1.66
@@ -63,6 +53,4 @@ anstyle-parse = "=0.2.1"
 tempfile = "3.2.0"
 
 [build-dependencies]
-clap = "=4.2"
-clap_complete = "=4.2"
 fs_extra = "1.2.0"
