@@ -1,3 +1,14 @@
+let s:bin_dir = expand('%:p:h') . '/bin/'
+if has('linux')
+    let s:boop_bin = s:bin_dir . 'boop-Linux'
+elseif has('mac')
+    let s:boop_bin = s:bin_dir . 'boop-macOS'
+elseif has('win32')
+    let s:boop_bin = s:bin_dir . 'boop.exe'
+else
+    throw "boop.vim: unsupported platform"
+endif
+
 """ User Settings
 if !exists('g:Boop_use_floating')
     let g:Boop_use_floating = 1
@@ -37,6 +48,41 @@ let s:boop_palette = 'none'
 
 
 
+""" functions for floating and popup windows
+fun! s:OpenFloatingWindow() abort
+    let ui = nvim_list_uis()[0]
+    let l:width = 100
+    let l:height = 25
+    let l:opts = {
+        \ 'relative': 'editor',
+        \ 'width': l:width,
+        \ 'height': l:height,
+        \ 'col': 10,
+        \ 'row': 5,
+        \ 'border': 'double',
+        \ 'title': '[Boop]',
+        \ }
+    let l:buf = nvim_create_buf(0, 1)
+    let l:win = nvim_open_win(l:buf, 0, opts)
+    call nvim_set_current_win(l:win)
+    augroup BoopFloat
+        autocmd! * <buffer>
+        autocmd WinLeave <buffer> call nvim_win_close(0, 1)
+    augroup END
+endfun
+
+fun! s:OpenBoopPalette() abort
+    if s:boop_palette == 'floating'
+        throw "s:boop_palette == 'floating' not implemented yet"
+    elseif s:boop_palette == 'popup'
+        throw "s:boop_palette == 'popup' not implemented yet"
+    else " s:boop_palette == 'none'
+        throw "Boop.vim: s:OpenBoopPalette() called with s:boop_palette == 'none'"
+    endif
+endfun
+
+
+
 """ The Boop Pad
 if s:boop_engine_interface == 'system'
     let s:boop_info_file = tempname()
@@ -47,7 +93,7 @@ else " s:boop_engine_interface == 'job'
     throw "s:boop_engine_interface == 'job' not implemented yet"
 endif
 
-" Required for refocusing the scratch pad
+" Required for refocusing the scratch pad implementation
 " TODO: implement use of window ID like in NERDTree/NERDTreeFocus
 let s:scratch_window = -1
 if s:boop_engine_interface == 'scratch'
@@ -81,28 +127,7 @@ fun! s:BoopPad(mods) abort
     endif
 endfun
 
-fun! s:OpenFloatingWindow() abort
-    let ui = nvim_list_uis()[0]
-    let l:width = 100
-    let l:height = 25
-    let l:opts = {
-        \ 'relative': 'editor',
-        \ 'width': l:width,
-        \ 'height': l:height,
-        \ 'col': 10,
-        \ 'row': 5,
-        \ 'border': 'double',
-        \ 'title': '[Boop]',
-        \ }
-    let l:buf = nvim_create_buf(0, 1)
-    let l:win = nvim_open_win(l:buf, 0, opts)
-    call nvim_set_current_win(l:win)
-    augroup BoopFloat
-        autocmd! * <buffer>
-        autocmd WinLeave <buffer> call nvim_win_close(0, 1)
-    augroup END
-endfun
-
+" Open the boop pad with the most recent selection (i.e. :normal! gv)
 fun! s:BoopPadSelection(mods) abort
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
@@ -116,16 +141,7 @@ endfun
 
 
 
-""" Display all scripts
-" You may prefer a different value than -3 below
-if has('unix') || has('osxunix')
-    command! ListBoopScripts !echo; boop -l | pr -3 -t
-elseif has('win32')
-    command! ListBoopScripts !echo.& boop -l
-endif
-
-
-""" Do the booping
+""" Core Boop functionality
 fun! s:BoopCompletion(ArgLead, CmdLine, CursorPos)
     " TODO: implement this with the rpc interface, and do it correctly using the completion parameters
     return system("boop -l")
@@ -137,33 +153,42 @@ fun! s:DoBoop(args) abort
     let l:input = getreg(s:boop_reg, 1, 1)
     if s:boop_engine_interface == "system"
         let l:cmd_list = [
-            \ 'boop', '--info-file', s:boop_info_file, '--error-file', s:boop_error_file,
+            \ s:boop_bin,
+            \ '--info-file', s:boop_info_file, '--error-file', s:boop_error_file,
             \ shellescape(a:args)
             \ ]
-        if has('unix') || has('macosunix')
-            let l:cmd_list = l:cmd_list + ['2>/dev/null']
-        elseif has('win32')
-            let l:cmd_list = l:cmd_list + ['2>NUL']
-        else
-            throw "boop.vim: unsupported platform"
-        endif
+        "if has('unix') || has('macosunix')
+        "    let l:cmd_list = l:cmd_list + ['2>/dev/null']
+        "elseif has('win32')
+        "    let l:cmd_list = l:cmd_list + ['2>NUL']
+        "else
+        "    throw "boop.vim: unsupported platform"
+        "endif
         let l:output = system(join(l:cmd_list), l:input)
-        let l:info_output = readfile(s:boop_info_file)
-        let l:error_output = readfile(s:boop_error_file)
-        if len(l:error_output) > 0
+        if v:shell_error != 0
             echohl ErrorMsg
-            echom trim(join(l:error_output, "\n"))
+            echom "Boop.vim: boop command failed with exit code " . v:shell_error
             echohl None
-        endif
-        if len(l:info_output) > 0
-            echohl MoreMsg
-            echom trim(join(l:info_output, "\n"))
-            echohl None
-        endif
-        " only output the result if script execution succeeded
-        if v:shell_error == 0
             call setreg(s:boop_reg, l:output)
+            return
         endif
+        try
+            let l:info_output = readfile(s:boop_info_file)
+            if len(l:info_output) > 0
+                echohl MoreMsg
+                echom trim(join(l:info_output, "\n"))
+                echohl None
+            endif
+        endtry
+        try
+            let l:error_output = readfile(s:boop_error_file)
+            if len(l:error_output) > 0
+                echohl ErrorMsg
+                echom trim(join(l:error_output, "\n"))
+                echohl None
+            endif
+        endtry
+        call setreg(s:boop_reg, l:output)
     else "s:boop_engine_interface == 'job'
         throw "s:boop_engine_interface == 'job' not implemented yet"
     endif
@@ -200,8 +225,7 @@ function! s:BoopLine(args) abort
     call setreg(s:boop_reg, l:reg_old)
 endfunction
 
-" Boops the most recent selection (i.e. the current selection if triggered
-" from visual mode)
+" Boops the most recent selection (i.e. the current selection if triggered from visual mode)
 " TODO: bugfix: `vap:boop [script]<cr>` removes a trailing newline
 function! s:BoopSelection(args) abort
     let script = len(a:args) ? a:args : s:OpenBoopPalette()
@@ -215,16 +239,10 @@ function! s:BoopSelection(args) abort
     call setreg(s:boop_reg, l:reg_old)
 endfunction
 
-fun! s:OpenBoopPalette() abort
-    if s:boop_palette == 'floating'
-        throw "s:boop_palette == 'floating' not implemented yet"
-    elseif s:boop_palette == 'popup'
-        throw "s:boop_palette == 'popup' not implemented yet"
-    else " s:boop_palette == 'none'
-        throw "Boop.vim: s:OpenBoopPalette() called with s:boop_palette == 'none'"
-    endif
-endfun
-
+" Boop pad commands
+command! BoopPad call s:BoopPad(<q-mods>)
+command! -range BoopPadFromSelection call s:BoopPadSelection(<q-mods>)
+" Boop commands
 if s:boop_palette == 'none'
     " If you invoke Boop with no arguments in oldvim, have it press tab for you
     command! -nargs=* -complete=custom,s:BoopCompletion -range Boop 
@@ -238,6 +256,10 @@ else
     command! -nargs=* -complete=custom,s:BoopCompletion BoopBuffer call s:BoopBuffer(<q-args>)
     "command! -nargs=* -complete=custom,s:BoopCompletion BoopLine call s:BoopLine(<q-args>)
 endif
-
-command! BoopPad call s:BoopPad(<q-mods>)
-command! -range BoopPadSelection call s:BoopPadSelection(<q-mods>)
+" Command to display the list of available scripts
+if has('unix') || has('osxunix')
+    " You may prefer a different value than -3 below
+    command! ListBoopScripts !echo; boop -l | pr -3 -t
+elseif has('win32')
+    command! ListBoopScripts !echo.& boop -l
+endif
