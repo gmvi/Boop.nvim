@@ -1,11 +1,8 @@
-# Boop.vim
+# Boop.nvim
 > [!IMPORTANT]
-> This is a prototype. It hasn't been tested on OSX or Windows yet.
+> This piece of software is a prototype for vim. A proper neovim plugin with a rust backend is in the works.
 
-## Installing
-I haven't looked at (Neo)vim package managers or prebuilt binaries yet. You'll have to build from source.
-
-## Building from source
+## Building
 
 ### Requirements
 Linux and Rust.
