@@ -1,6 +1,6 @@
 # Boop.nvim
 > [!IMPORTANT]
-> This piece of software is a prototype for vim. A proper neovim plugin with a rust backend is in the works.
+> This piece of software is a prototype for vim. It relies on a rust cli binary. A proper neovim plugin using msgpack is in the works.
 
 ## Building
 
