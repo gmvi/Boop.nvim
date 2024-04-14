@@ -18,9 +18,7 @@ use eyre::{
     Error,
 };
 use clap::Parser;
-use std::io::{
-    Write, Seek, SeekFrom,
-};
+use std::io::Write;
 use std::fs::File;
 //use neovim_lib::{Neovim, NeovimApi, Session};
 //
@@ -96,20 +94,47 @@ fn main() -> Result<()>{
     let matches: Vec<(&String, &script::Script)> = script_map.0.iter()
             .filter(|(name, _)| name.to_lowercase().starts_with(&script_name.to_lowercase()))
             .collect();
+
+    // try to open error output file if specified
+    let mut error_file: Option<File> = match args.error_file {
+        None => None,
+        Some(path) => {
+            match open_output_file(path.clone()) {
+                Err(msg) => {
+                    eprintln!("ERROR: Failed to open --error-file {}\n\t{}", path, msg);
+                    None
+                },
+                Ok(file) => Some(file),
+            }
+        }
+    };
     if matches.len() != 1 {
-        // can't find the script. Output the input and then eprint an error message
+        // can't find the script. Output the input and eprint an error message
         _ = std::io::copy(&mut std::io::stdin(), &mut std::io::stdout());
         if matches.len() == 0 {
-            eprintln!("No scripts found with name: {}", script_name);
-        } else if matches.len() > 1 {
-            eprintln!("Can't autocomplete script name. Did you mean one of the following?");
-            for (name, _) in matches {
-                eprintln!("\t{}", name);
+            let e = format!("No scripts found with name: {}", script_name);
+            eprintln!("{}", e);
+            if error_file.is_some() {
+                _ = writeln!(error_file.as_mut().unwrap(), "{}", e);
             }
+            std::process::exit(127);
+        } else if matches.len() > 1 {
+            let e = format!("Can't autocomplete script name. Did you mean one of the following?");
+            eprintln!("{}", e);
+            if error_file.is_some() {
+                _ = writeln!(error_file.as_mut().unwrap(), "{}", e);
+            }
+            for (name, _) in matches {
+                let e = format!("\t{}", name);
+                eprintln!("{}", e);
+                if error_file.is_some() {
+                    _ = writeln!(error_file.as_mut().unwrap(), "{}", e);
+                }
+            }
+            std::process::exit(127);
         } else {
             unreachable!("matches.len() is not 0, 1, or >1. It is {}", matches.len());
         }
-        std::process::exit(1);
     }
     script_name = matches[0].0.clone();
     let script = script_map.0.get_mut(&script_name).unwrap();
@@ -124,19 +149,6 @@ fn main() -> Result<()>{
     };
 
     // read results
-    // try to open error output file if specified
-    let error_file = match args.error_file {
-        None => None,
-        Some(path) => {
-            match open_output_file(path.clone()) {
-                Err(msg) => {
-                    eprintln!("ERROR: Failed to open --error-file {}\n\t{}", path, msg);
-                    None
-                },
-                Ok(file) => Some(file),
-            }
-        }
-    };
     // write error to file if possible, otherwise to stderr
     if let Some(error) = execution_status.error() {
         match error_file {

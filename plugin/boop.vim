@@ -105,9 +105,13 @@ fun! s:DoBoop(args) abort
     " the `, 1, 1` below is to not translate NULs to newlines -- VimL is weird
     let l:input = getreg(s:boop_reg, 1, 1)
     if s:boop_engine_interface == "system"
+        " Try to init again in case the user fixed a system issue (e.g.
+        " filesystem permissions). This will exit early if init already
+        " succeeded.
         if !boop#oldvim#init()
             return 0
         endif
+
         if g:boop#util#unixlike
             let l:stderr_mute = '2>/dev/null'
         else " has('win32')
@@ -120,10 +124,11 @@ fun! s:DoBoop(args) abort
                          \ shellescape(a:args),
                          \ l:stderr_mute,
                          \ ]
+
         let l:output = system(join(l:cmd_list), l:input)
         if v:shell_error != 0
             echohl ErrorMsg
-            echom "Boop.vim: boop command failed with exit code " . v:shell_error
+            echom "Boop.vim: boop invocation failed (" . v:shell_error . ")"
             echohl None
         endif
         try
@@ -134,9 +139,11 @@ fun! s:DoBoop(args) abort
                 echohl None
             endif
         endtry
+
         if v:shell_error != 0
             return 0
         endif
+
         try
             let l:info_output = readfile(g:boop#oldvim#info_file)
             if len(l:info_output) > 0
@@ -145,8 +152,10 @@ fun! s:DoBoop(args) abort
                 echohl None
             endif
         endtry
+
         call setreg(s:boop_reg, l:output)
         return l:input !=# split(l:output, '\r\?\n', 1)
+
     else "s:boop_engine_interface == 'job'
         throw "s:boop_engine_interface == 'job' not implemented yet"
         return 0
