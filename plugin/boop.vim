@@ -38,25 +38,24 @@ let s:boop_palette = 'none'
 
 
 "" setup for nvim and vim
-if s:boop_engine_interface == 'system'
-    call boop#oldvim#init()
-else " s:boop_engine_interface == 'job'
-    " in the future, json vs msgpack may be determined by an if has('nvim')
-    throw "s:boop_engine_interface == 'job' not implemented yet"
-    call boop#neovim#init()
-endif
+"if s:boop_engine_interface == 'system'
+"    call boop#oldvim#init()
+"else " s:boop_engine_interface == 'job'
+"    " in the future, json vs msgpack may be determined by an if has('nvim')
+"    throw "s:boop_engine_interface == 'job' not implemented yet"
+"    call boop#neovim#init()
+"endif
 
 " Required for refocusing the scratch pad implementation
 " TODO: implement use of window ID like in NERDTree/NERDTreeFocus
 let s:scratch_window = -1
 if s:boop_pad_ui == 'scratch'
-    set swtichbuf +=useopen
+    set switchbuf +=useopen
 endif
 
 fun! s:BoopPad(mods) abort
     if s:boop_pad_ui == 'floating'
         call boop#floating#open_scratch()
-        call s:OpenFloatingWindow()
         try
             b \[Boop]
             return
@@ -108,18 +107,19 @@ fun! s:DoBoop(args) abort
     if s:boop_engine_interface == "system"
         if !boop#oldvim#init()
             return 0
-        if s:unixlike
+        endif
+        if g:boop#util#unixlike
             let l:stderr_mute = '2>/dev/null'
         else " has('win32')
             let l:stderr_mute = '2>NUL'
         endif
         " info and error files will be overwritten
         let l:cmd_list = [ g:boop#util#bin_path,
-                         \ '--info-file', s:info_file,
-                         \ '--error-file', s:error_file,
+                         \ '--info-file', g:boop#oldvim#info_file,
+                         \ '--error-file', g:boop#oldvim#error_file,
                          \ shellescape(a:args),
                          \ l:stderr_mute,
-                         ]
+                         \ ]
         let l:output = system(join(l:cmd_list), l:input)
         if v:shell_error != 0
             echohl ErrorMsg
@@ -127,7 +127,7 @@ fun! s:DoBoop(args) abort
             echohl None
         endif
         try
-            let l:error_output = readfile(s:error_file)
+            let l:error_output = readfile(g:boop#oldvim#error_file)
             if len(l:error_output) > 0
                 echohl ErrorMsg
                 echom trim(join(l:error_output, "\n"))
@@ -138,7 +138,7 @@ fun! s:DoBoop(args) abort
             return 0
         endif
         try
-            let l:info_output = readfile(s:info_file)
+            let l:info_output = readfile(g:boop#oldvim#info_file)
             if len(l:info_output) > 0
                 echohl MoreMsg
                 echom trim(join(l:info_output, "\n"))
@@ -146,7 +146,7 @@ fun! s:DoBoop(args) abort
             endif
         endtry
         call setreg(s:boop_reg, l:output)
-        return 1
+        return l:input !=# split(l:output, '\r\?\n', 1)
     else "s:boop_engine_interface == 'job'
         throw "s:boop_engine_interface == 'job' not implemented yet"
         return 0
@@ -172,7 +172,7 @@ endfun
 function! s:BoopLine(args) abort
     let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
-    let l:reg_old = getreg(s:boop_reg)
+    let l:reg_old_contents = getreg(s:boop_reg)
     try
         silent exec "yank" s:boop_reg
         if s:DoBoop(a:args)
@@ -183,7 +183,7 @@ function! s:BoopLine(args) abort
             call setreg('/', l:search_reg)
         endif
     endtry
-    call setreg(s:boop_reg, l:reg_old)
+    call setreg(s:boop_reg, l:reg_old_contents)
 endfunction
 
 " Boops the most recent selection (i.e. the current selection if triggered from visual mode)

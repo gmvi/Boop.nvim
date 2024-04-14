@@ -1,25 +1,25 @@
 fun! boop#oldvim#init() abort
     fun! s:f()
         let s:oldvim_init_success = 0
-        if s:unixlike
+        if g:boop#util#unixlike
             let l:touch = "touch"
         else " has('win32')
             let l:touch = "copy nul"
         endif
-        if !exists("s:info_file")
-            let s:info_file = tempname()
+        if !exists("g:boop#oldvim#info_file")
+            let g:boop#oldvim#info_file = tempname()
         endif
-        if !exists("s:error_file")
-            let s:error_file = tempname()
+        if !exists("g:boop#oldvim#error_file")
+            let g:boop#oldvim#error_file = tempname()
         endif
-        if !exists("s:boop_scratch_window")
-            let s:boop_scratch_window = -1
+        if !exists("g:boop#oldvim#boop_scratch_window")
+            let g:boop#oldvim#boop_scratch_window = -1
         endif
-        call system(touch . " " . shellescape(s:info_file))
+        call system(touch . " " . shellescape(g:boop#oldvim#info_file))
         if v:shell_error != 0
             return
         endif
-        call system(touch . " " . shellescape(s:error_file))
+        call system(touch . " " . shellescape(g:boop#oldvim#error_file))
         if v:shell_error != 0
             return
         endif
