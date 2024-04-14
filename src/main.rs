@@ -22,19 +22,27 @@ use std::io::{
     Write, Seek, SeekFrom,
 };
 use std::fs::File;
+//use neovim_lib::{Neovim, NeovimApi, Session};
+//
+//enum MsgPackMessages {
+//    Boop,
+//    Unknown(String),
+//}
+//
+//impl From<String> for MsgPackMessages {
+//    fn from(event: String) -> Self {
+//        match &event[..] {
+//            "boop" => MsgPackMessages::Boop,
+//            _ => MsgPackMessages::Unknown,
+//        }
+//    }
+//}
 
 fn open_output_file(path: String) -> Result<File> {
     if path == "" {
         return Err(Error::msg("path is empty"));
     }
-    let mut output_file = match File::open(path.clone()) {
-        Ok(file) => Ok(file),
-        // try to create the file
-        Err(_) => File::create(path.clone()),
-    }?;
-    // try to truncate the file 
-    output_file.set_len(0)?;
-    output_file.seek(SeekFrom::End(0))?;
+    let output_file = File::create(path.clone())?;
     Ok(output_file)
 }
 
@@ -45,7 +53,7 @@ fn main() -> Result<()>{
 
     // create main user scripts directory if it doesn't exist
     let scripts_dir = &util::get_script_dirs()[0];
-    std::fs::create_dir_all(scripts_dir);
+    let _ = std::fs::create_dir_all(scripts_dir);
     // don't fail if the create_dir_all fails, but should probably eprint! it
     //.wrap_err_with(|| {
     //    format!(
@@ -68,8 +76,20 @@ fn main() -> Result<()>{
     /* op_mode: --rpc */
     if args.rpc {
         eprintln!("Error: RPC mode not implemented yet");
-        std::process::exit(1);
-        //Daemon::new(script_map).run();
+        //let mut session = Session::new_parent().unwrap();
+        //let receiver = nvim.session.start_event_loop_channel();
+        //let mut nvim = Neovim::new(session);
+        //for (event_name, values) in receiver {
+        //    match MsgPackMessages::from(event_name) {
+        //        MsgPackMessages::Boop => {
+        //            let output_text = RunScript(script_name, input_text);
+        //        }
+
+        //        MsgPackMessages::Unknown => {
+        //        }
+        //    }
+        //}
+        std::process::exit(0);
     }
 
     /* op_mode: <SCRIPT_NAME> */
@@ -109,8 +129,8 @@ fn main() -> Result<()>{
         None => None,
         Some(path) => {
             match open_output_file(path.clone()) {
-                Err(_) => {
-                    eprintln!("ERROR: Failed to open --error-file {}", path);
+                Err(msg) => {
+                    eprintln!("ERROR: Failed to open --error-file {}\n\t{}", path, msg);
                     None
                 },
                 Ok(file) => Some(file),
@@ -129,8 +149,8 @@ fn main() -> Result<()>{
         None => None,
         Some(path) => {
             match open_output_file(path.clone()) {
-                Err(_) => {
-                    eprintln!("ERROR: Failed to open --info-file {}", path);
+                Err(msg) => {
+                    eprintln!("ERROR: Failed to open --info-file {}\n\t{}", path, msg);
                     None
                 },
                 Ok(file) => Some(file),
@@ -166,5 +186,5 @@ fn main() -> Result<()>{
         };
         print!("{}", output);
     }
-    Ok(())
+    std::process::exit(0);
 }

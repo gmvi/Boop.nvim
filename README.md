@@ -15,7 +15,7 @@ Linux and Rust.
 3. Install the boop binary: `cargo install --path .`
 4. Ensure the boop binary is in your path: `echo "asdf" | boop Rot13`
 5. (optional) Install the bash completion script into your .bashrc: `source boop-completion.bash`
-6. Source the .vim file from your .vimrc: `source 'boop-prototype.vim'`
+6. Source the vim file from your .vimrc: `source 'boop-prototype.vim'`
 7. Add bindings to your .vimrc:
 ```
 "
