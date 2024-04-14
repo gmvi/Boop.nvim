@@ -2,9 +2,9 @@ name: Boop
 
 on:
   push:
-    branches: [ "main", "github-actions" ]
+    branches: [ "github-actions" ]
   pull_request:
-    branches: [ "main", "github-actions" ]
+    branches: [ "main", "dev" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -52,7 +52,7 @@ jobs:
           args: "--locked"
           strip: true
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform.name }}
           path: target/${{ matrix.platform.target }}/debug/${{ matrix.platform.bin }}
