@@ -1,2 +1,4 @@
 target/
 bin/boop*
+.crates.toml
+.crates2.json

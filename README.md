@@ -10,10 +10,22 @@ This projected has not been tested extensively on Windows or OSX, but the binary
 1. Clone this repo: `git clone https://github.com/gmvi/Boop.nvim.git`
 2. Initialize the submodules: `git submodule update --init --recursive`
 3. Install the boop binary: `cargo install --path . --root . --force`
-4. (For Vim) Add the plugin as a package: `mkdir -p ~/.vim/pack/gmvi/start/ && ln -s . ~.vim/pack/gmvi/start/boop.vim`
-5. (For Neovim) Add the plugin to your package manager by path. For Lazy.nvim I use `{ dir = "~/src/Boop.nvim" }`
+4. (For Vim) Add the plugin as a package:
+   `mkdir -p ~/.vim/pack/gmvi/start/ && ln -s . ~.vim/pack/gmvi/start/boop.vim`
+5. (For Neovim) Add the plugin to your package manager by path. For Lazy.nvim,
+   I use `{ dir = "~/src/Boop.nvim" }`
 6. Put custom boop scripts in `~/.config/boop/`
-7. If you want to remap keys within the Boop scratch pad, use the following:
+
+## Usage
+
+Using the default keybinds, Ctrl-B will open the Boop scratchpad from normal
+mode. Pressing Ctrl-B again will populate your Vim command line with
+`:BoopBuffer `, which is used to run a script on the entire scratch pad. In
+visual mode, Ctrl-B will similarly populate your Vim command line with
+`:'<,'>Boop `, which will run a command on the current selection only (the
+`'<,'>` range specifier is ignored).
+
+If you want custom keymaps specific to the Boop scratch pad, use an autocmd:
 ```
 augroup boop_user_mapping
     autocmd!
@@ -25,6 +37,3 @@ function! s:BoopUserMapping()
     nnoremap <buffer> <c-l> :ListBoopScripts<cr>
 endfunction
 ```
-
-## Usage
-Coming Soon

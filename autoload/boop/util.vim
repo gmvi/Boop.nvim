@@ -7,6 +7,14 @@ elseif has('win32')
 else
     throw "boop.vim: unsupported platform"
 endif
-" define the path to the binary
-let s:bin_dir = expand('<sfile>:p:h:h:h') . '/bin/'
-let g:boop#util#bin_path = s:bin_dir . s:bin_name
+" define paths
+let g:boop#util#plugin_root = expand('<sfile>:p:h:h:h') . '/'
+let g:boop#util#bin_path = g:boop#util#plugin_root . 'bin/' . s:bin_name
+
+fun! boop#util#strip(str)
+    if v:version >= 801
+        return trim(str)
+    else
+        substitute(str, '^\s*\(.\{-}\)\s*$', '\1', '')
+    endif
+endfun

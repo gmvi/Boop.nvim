@@ -8,6 +8,9 @@ endif
 if !exists('g:Boop_default_mappings')
     let g:Boop_default_mappings = 1
 endif
+if !exists('g:Boop_build_source')
+    let g:Boop_build_source = 0
+endif
 
 """ Select Implementation Details
 if has('nvim-0.6') && has('job')
@@ -53,7 +56,78 @@ if s:boop_pad_ui == 'scratch'
     set switchbuf +=useopen
 endif
 
+fun! s:check_firstrun()
+    " TODO: give user option to download or compile, like tmux-thumbs
+    if glob(g:boop#util#bin_path) !=# ""
+        return
+    endif
+    call s:install_binary()
+endfun
+
+fun! s:reinstall_binary()
+    " TODO: expose this to the user to re-install/build the binary
+    if g:boop#util#unixlike
+        call system("rm " . g:boop#util#bin_path)
+    else
+        call system("del " . g:boop#util#bin_path)
+    endif
+    call s:install_binary()
+endfun
+
+fun! s:install_binary()
+    let l:first_run_message = "It looks like this is your first time using Boop! Unfortunately a suitable prebuilt binary was not found and you will have to build the Javascript engine from source."
+
+    if !g:Boop_build_source
+        echo "Boop.nvim: installing javascript engine..."
+        if g:boop#util#unixlike
+            let l:output = system(g:boop#util#plugin_root . 'install_scripts/boop-nvim-install.sh')
+        else
+            throw "TODO: write binary-download batch script"
+            let l:output = system(g:boop#util#plugin_root . 'install_scripts/boop-nvim-install.bat')
+        endif
+        if v:shell_error == 0
+            return 1
+        else
+            " Explain what's going on and ask if the user wants to build from source
+            echom l:first_run_message
+            if v:shell_error == 64
+                echom "[INFO] Prebuilt binaries are not currently available for MacOS on aarch64. If you'd like to help me troubleshoot: https://github.com/gmvi/Boop.nvim/issues/9"
+            elseif v:shell_error != 32
+                echom "[ERROR] Install script failed with error code (" . v:shell_error . ")"
+            endif
+            " ask if the user wants to install from source
+            let do_build = ""
+            while 1
+                let do_build = input("Do you want to build from source? This requires the rust build tools. (y/n) ")
+                let do_build = boop#util#strip(do_build)
+                if do_build ==? 'y' || do_build ==? 'yes'
+                    let do_build = 1
+                    break
+                elseif do_build ==? 'n' || do_build ==? 'no' 
+                    let do_build = 0
+                    break
+                endif
+            endwhile
+            if !do_build
+                return 0
+            endif
+        endif
+    endif
+    if g:boop#util#unixlike
+        throw "TODO: write build script"
+        let l:output = system(g:boop#util#plugin_root . 'install_scripts/boop-nvim-build.sh')
+    else
+        throw "TODO: write build script"
+        let l:output = system(g:boop#util#plugin_root . 'install_scripts/boop-nvim-build.bat')
+    endif
+    if v:shell_error == 0
+        return 1
+    endif
+endfun
+
+
 fun! s:BoopPad(mods) abort
+    call s:check_firstrun()
     if s:boop_pad_ui == 'floating'
         call boop#floating#open_scratch()
         try
@@ -82,6 +156,7 @@ endfun
 
 " Open the boop pad with the most recent selection (using :normal! gv)
 fun! s:BoopPadSelection(mods) abort
+    call s:check_firstrun()
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
     try
@@ -95,9 +170,11 @@ endfun
 
 """ Do the booping (core functions; user-facing commands below)
 
-fun! s:BoopCompletion(ArgLead, CmdLine, CursorPos)
+fun! s:BoopCompletion(ArgLead, CmdLine, CursorPos) abort
     " TODO: implement this with the rpc interface, and do it correctly using the completion parameters
-    return system("boop -l")
+    if exists('g:boop#util#bin_path')
+        return system(g:boop#util#bin_path . " -l")
+    endif
 endfun
 
 let s:boop_reg = 'x'
@@ -164,6 +241,7 @@ endfun
 
 " Boops the entire buffer
 fun! s:BoopBuffer(args) abort
+    call s:check_firstrun()
     let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
@@ -178,7 +256,8 @@ endfun
 
 " Boops the current line. Does not affect the recent selection (gv)
 " TODO: make this work linewise instead of just one single line
-function! s:BoopLine(args) abort
+fun! s:BoopLine(args) abort
+    call s:check_firstrun()
     let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old_contents = getreg(s:boop_reg)
@@ -193,11 +272,12 @@ function! s:BoopLine(args) abort
         endif
     endtry
     call setreg(s:boop_reg, l:reg_old_contents)
-endfunction
+endfun
 
 " Boops the most recent selection (i.e. the current selection if triggered from visual mode)
 " TODO: bugfix: `vap:boop [script]<cr>` removes a trailing newline
-function! s:BoopSelection(args) abort
+fun! s:BoopSelection(args) abort
+    call s:check_firstrun()
     let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
@@ -208,7 +288,7 @@ function! s:BoopSelection(args) abort
         endif
     endtry
     call setreg(s:boop_reg, l:reg_old)
-endfunction
+endfun
 
 " Boop pad commands
 command! BoopPad call s:BoopPad(<q-mods>)
@@ -235,3 +315,8 @@ elseif has('win32')
     command! ListBoopScripts !echo.& boop -l
 endif
 
+if g:Boop_default_mappings
+    nnoremap <c-b> :BoopPad<CR>
+    xnoremap <c-b> :Boop<Space>
+    nnoremap <buffer> <c-b> :BoopBuffer<space>
+endif
