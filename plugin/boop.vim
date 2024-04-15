@@ -10,17 +10,17 @@ if !exists('g:Boop_default_mappings')
 endif
 
 """ Select Implementation Details
-"if has('nvim-0.6') || has('job')
-"    let s:boop_engine_interface = 'job'
-"else
-"    let s:boop_engine_interface = 'system'
-"endif
+if has('nvim-0.6') && has('job')
+    let s:boop_engine_interface = 'job'
+else
+    let s:boop_engine_interface = 'system'
+endif
 if has('nvim-0.5') && g:Boop_use_floating
     let s:boop_pad_ui = 'floating'
 else
     let s:boop_pad_ui = 'scratch'
 endif
-"if !g:Boop_use_pallette
+"if !g:Boop_use_palette
 "    let s:boop_palette = 'none'
 "elseif has('nvim-0.5')
 "    let s:boop_palette = 'floating'
@@ -31,32 +31,31 @@ endif
 "endif
 
 " Set values here for development testing
+"let s:boop_engine_interface = 'job'
 let s:boop_engine_interface = 'system'
 "let s:boop_pad_ui = 'floating'
 let s:boop_palette = 'none'
 
 
+"" setup for nvim and vim
+"if s:boop_engine_interface == 'system'
+"    call boop#oldvim#init()
+"else " s:boop_engine_interface == 'job'
+"    " in the future, json vs msgpack may be determined by an if has('nvim')
+"    throw "s:boop_engine_interface == 'job' not implemented yet"
+"    call boop#neovim#init()
+"endif
 
-""" The Boop Pad
-if s:boop_engine_interface == 'system'
-    let s:boop_info_file = tempname()
-    let s:boop_error_file = tempname()
-    let s:boop_scratch_window = -1
-else " s:boop_engine_interface == 'job'
-    " json vs msgpack is determined by an if has('nvim')
-    throw "s:boop_engine_interface == 'job' not implemented yet"
-endif
-
-" Required for refocusing the scratch pad
+" Required for refocusing the scratch pad implementation
 " TODO: implement use of window ID like in NERDTree/NERDTreeFocus
 let s:scratch_window = -1
-if s:boop_engine_interface == 'scratch'
-    set swtichbuf +=useopen
+if s:boop_pad_ui == 'scratch'
+    set switchbuf +=useopen
 endif
 
 fun! s:BoopPad(mods) abort
     if s:boop_pad_ui == 'floating'
-        call s:OpenFloatingWindow()
+        call boop#floating#open_scratch()
         try
             b \[Boop]
             return
@@ -81,28 +80,7 @@ fun! s:BoopPad(mods) abort
     endif
 endfun
 
-fun! s:OpenFloatingWindow() abort
-    let ui = nvim_list_uis()[0]
-    let l:width = 100
-    let l:height = 25
-    let l:opts = {
-        \ 'relative': 'editor',
-        \ 'width': l:width,
-        \ 'height': l:height,
-        \ 'col': 10,
-        \ 'row': 5,
-        \ 'border': 'double',
-        \ 'title': '[Boop]',
-        \ }
-    let l:buf = nvim_create_buf(0, 1)
-    let l:win = nvim_open_win(l:buf, 0, opts)
-    call nvim_set_current_win(l:win)
-    augroup BoopFloat
-        autocmd! * <buffer>
-        autocmd WinLeave <buffer> call nvim_win_close(0, 1)
-    augroup END
-endfun
-
+" Open the boop pad with the most recent selection (using :normal! gv)
 fun! s:BoopPadSelection(mods) abort
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
@@ -115,17 +93,8 @@ fun! s:BoopPadSelection(mods) abort
 endfun
 
 
+""" Do the booping (core functions; user-facing commands below)
 
-""" Display all scripts
-" You may prefer a different value than -3 below
-if has('unix') || has('osxunix')
-    command! ListBoopScripts !echo; boop -l | pr -3 -t
-elseif has('win32')
-    command! ListBoopScripts !echo.& boop -l
-endif
-
-
-""" Do the booping
 fun! s:BoopCompletion(ArgLead, CmdLine, CursorPos)
     " TODO: implement this with the rpc interface, and do it correctly using the completion parameters
     return system("boop -l")
@@ -136,48 +105,73 @@ fun! s:DoBoop(args) abort
     " the `, 1, 1` below is to not translate NULs to newlines -- VimL is weird
     let l:input = getreg(s:boop_reg, 1, 1)
     if s:boop_engine_interface == "system"
-        let l:cmd_list = [
-            \ 'boop', '--info-file', s:boop_info_file, '--error-file', s:boop_error_file,
-            \ shellescape(a:args)
-            \ ]
-        if has('unix') || has('macosunix')
-            let l:cmd_list = l:cmd_list + ['2>/dev/null']
-        elseif has('win32')
-            let l:cmd_list = l:cmd_list + ['2>NUL']
-        else
-            throw "boop.vim: unsupported platform"
+        " Try to init again in case the user fixed a system issue (e.g.
+        " filesystem permissions). This will exit early if init already
+        " succeeded.
+        if !boop#oldvim#init()
+            return 0
         endif
+
+        if g:boop#util#unixlike
+            let l:stderr_mute = '2>/dev/null'
+        else " has('win32')
+            let l:stderr_mute = '2>NUL'
+        endif
+        " info and error files will be overwritten
+        let l:cmd_list = [ g:boop#util#bin_path,
+                         \ '--info-file', g:boop#oldvim#info_file,
+                         \ '--error-file', g:boop#oldvim#error_file,
+                         \ shellescape(a:args),
+                         \ l:stderr_mute,
+                         \ ]
+
         let l:output = system(join(l:cmd_list), l:input)
-        let l:info_output = readfile(s:boop_info_file)
-        let l:error_output = readfile(s:boop_error_file)
-        if len(l:error_output) > 0
+        if v:shell_error != 0
             echohl ErrorMsg
-            echom trim(join(l:error_output, "\n"))
+            echom "Boop.vim: boop invocation failed (" . v:shell_error . ")"
             echohl None
         endif
-        if len(l:info_output) > 0
-            echohl MoreMsg
-            echom trim(join(l:info_output, "\n"))
-            echohl None
+        try
+            let l:error_output = readfile(g:boop#oldvim#error_file)
+            if len(l:error_output) > 0
+                echohl ErrorMsg
+                echom trim(join(l:error_output, "\n"))
+                echohl None
+            endif
+        endtry
+
+        if v:shell_error != 0
+            return 0
         endif
-        " only output the result if script execution succeeded
-        if v:shell_error == 0
-            call setreg(s:boop_reg, l:output)
-        endif
+
+        try
+            let l:info_output = readfile(g:boop#oldvim#info_file)
+            if len(l:info_output) > 0
+                echohl MoreMsg
+                echom trim(join(l:info_output, "\n"))
+                echohl None
+            endif
+        endtry
+
+        call setreg(s:boop_reg, l:output)
+        return l:input !=# split(l:output, '\r\?\n', 1)
+
     else "s:boop_engine_interface == 'job'
         throw "s:boop_engine_interface == 'job' not implemented yet"
+        return 0
     endif
 endfun
 
 " Boops the entire buffer
 fun! s:BoopBuffer(args) abort
-    let script = len(a:args) ? a:args : s:OpenBoopPalette()
+    let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
     try
         silent exec "%yank" s:boop_reg
-        call s:DoBoop(a:args)
-        silent exec "normal!" "gg\"_dG\""..s:boop_reg.."P"
+        if s:DoBoop(a:args)
+            silent exec "normal!" "gg\"_dG\""..s:boop_reg.."P"
+        endif
     endtry
     call setreg(s:boop_reg, l:reg_old)
 endfun
@@ -185,46 +179,41 @@ endfun
 " Boops the current line. Does not affect the recent selection (gv)
 " TODO: make this work linewise instead of just one single line
 function! s:BoopLine(args) abort
-    let script = len(a:args) ? a:args : s:OpenBoopPalette()
+    let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
-    let l:reg_old = getreg(s:boop_reg)
+    let l:reg_old_contents = getreg(s:boop_reg)
     try
         silent exec "yank" s:boop_reg
-        call s:DoBoop(a:args)
-        " do a `substitute` instead of some normal! dd/P command, cause it
-        " wasn't working for me.
-        let l:search_reg = getreg('/')
-        silent exec "substitute" "/.*/\\=@"..s:boop_reg.."/"
-        call setreg('/', l:search_reg)
+        if s:DoBoop(a:args)
+            " do a `substitute` instead of some normal! dd/P command, cause it
+            " wasn't working for me.
+            let l:search_reg = getreg('/')
+            silent exec "substitute" "/.*/\\=@"..s:boop_reg.."/"
+            call setreg('/', l:search_reg)
+        endif
     endtry
-    call setreg(s:boop_reg, l:reg_old)
+    call setreg(s:boop_reg, l:reg_old_contents)
 endfunction
 
-" Boops the most recent selection (i.e. the current selection if triggered
-" from visual mode)
+" Boops the most recent selection (i.e. the current selection if triggered from visual mode)
 " TODO: bugfix: `vap:boop [script]<cr>` removes a trailing newline
 function! s:BoopSelection(args) abort
-    let script = len(a:args) ? a:args : s:OpenBoopPalette()
+    let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
     try
         silent exec "normal!" "gv\""..s:boop_reg.."y"
-        call s:DoBoop(script)
-        silent exec "normal!" "gv\""..s:boop_reg.."p"
+        if s:DoBoop(script)
+            silent exec "normal!" "gv\""..s:boop_reg.."p"
+        endif
     endtry
     call setreg(s:boop_reg, l:reg_old)
 endfunction
 
-fun! s:OpenBoopPalette() abort
-    if s:boop_palette == 'floating'
-        throw "s:boop_palette == 'floating' not implemented yet"
-    elseif s:boop_palette == 'popup'
-        throw "s:boop_palette == 'popup' not implemented yet"
-    else " s:boop_palette == 'none'
-        throw "Boop.vim: s:OpenBoopPalette() called with s:boop_palette == 'none'"
-    endif
-endfun
-
+" Boop pad commands
+command! BoopPad call s:BoopPad(<q-mods>)
+command! -range BoopPadFromSelection call s:BoopPadSelection(<q-mods>)
+" Boop commands
 if s:boop_palette == 'none'
     " If you invoke Boop with no arguments in oldvim, have it press tab for you
     command! -nargs=* -complete=custom,s:BoopCompletion -range Boop 
@@ -238,6 +227,11 @@ else
     command! -nargs=* -complete=custom,s:BoopCompletion BoopBuffer call s:BoopBuffer(<q-args>)
     "command! -nargs=* -complete=custom,s:BoopCompletion BoopLine call s:BoopLine(<q-args>)
 endif
+" Command to display the list of available scripts
+if has('unix') || has('osxunix')
+    " You may prefer a different value than -3 below
+    command! ListBoopScripts !echo; boop -l | pr -3 -t
+elseif has('win32')
+    command! ListBoopScripts !echo.& boop -l
+endif
 
-command! BoopPad call s:BoopPad(<q-mods>)
-command! -range BoopPadSelection call s:BoopPadSelection(<q-mods>)
