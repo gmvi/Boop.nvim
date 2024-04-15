@@ -15,6 +15,13 @@ jobs:
     strategy:
       matrix:
         platform:
+          - release_for: Linux-aarch64
+            os: ubuntu-22.04
+            target: aarch64-unknown-linux-gnu
+            bin: boop
+            command: build
+            name: boop-Linux-aarch64
+
           - release_for: Linux-x86_64
             os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
@@ -22,12 +29,12 @@ jobs:
             command: build
             name: boop-Linux-x86_64
 
-          - release_for: Windows-x86_64
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
-            bin: boop.exe
-            command: both
-            name: boop-Windows-x86_64.exe
+            #- release_for: macOS-aarch64
+            #  os: macOS-latest
+            #  target: aarch64-apple-darwin
+            #  bin: boop
+            #  command: both
+            #  name: boop-macOS-aarch64
 
           - release_for: macOS-x86_64
             os: macOS-latest
@@ -36,12 +43,19 @@ jobs:
             command: both
             name: boop-macOS-x86_64
 
+          - release_for: Windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: boop.exe
+            command: both
+            name: boop-Win64.exe
+
             # more release targets here ...
 
     runs-on: ${{ matrix.platform.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Build binary
@@ -51,10 +65,11 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: "--locked"
           strip: true
+      - name: Rename binary
+        run: mv target/${{ matrix.platform.target }}/debug/${{ matrix.platform.bin }} ${{ matrix.platform.name }}
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform.name }}
-          path: target/${{ matrix.platform.target }}/debug/${{ matrix.platform.bin }}
-
+          path: ${{ matrix.platform.name }}
     # more packaging stuff goes here ...
