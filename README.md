@@ -1,44 +1,30 @@
 # Boop.nvim
 > [!IMPORTANT]
-> This piece of software is a prototype for vim. It relies on a rust cli binary. A proper neovim plugin using msgpack is in the works.
+> This is a prototype requiring a manually-built binary. A proper Neovim plugin using jobstart() is planned.
 
 ## Building
+Requires Rust.
 
-### Requirements
-Linux and Rust.
+This projected has not been tested extensively on Windows or OSX, but the binary should build at least.
 
-1. Clone this repo
-2. Clone all the submodules: `git submodule update --init --recursive`
-3. Install the boop binary: `cargo install --path .`
-4. Ensure the boop binary is in your path: `echo "asdf" | boop Rot13`
-5. (optional) Install the bash completion script into your .bashrc: `source boop-completion.bash`
-6. Source the vim file from your .vimrc: `source 'boop-prototype.vim'`
-7. Add bindings to your .vimrc:
+1. Clone this repo: `git clone https://github.com/gmvi/Boop.nvim.git`
+2. Initialize the submodules: `git submodule update --init --recursive`
+3. Install the boop binary: `cargo install --path . --root . --force`
+4. (For Vim) Add the plugin as a package: `mkdir -p ~/.vim/pack/gmvi/start/ && ln -s . ~.vim/pack/gmvi/start/boop.vim`
+5. (For Neovim) Add the plugin to your package manager by path. For Lazy.nvim I use `{ dir = "~/src/Boop.nvim" }`
+6. Put custom boop scripts in `~/.config/boop/`
+7. If you want to remap keys within the Boop scratch pad, use the following:
 ```
-"
-" The boop pad is a scratch pad emulating some of the Boop app
-" From normal mode, press <ctrl-b> to open or focus the boop scratch pad.
-nnoremap <c-b> :BoopPad<cr>
-" If you'd rather open the boop pad vertically, add the vertical modifier
-"nnoremap <c-b> :vertical BoopPad<cr>
-
-" From visual mode, press <ctrl-b> to run a boop script on the selection
-xnoremap <c-b> :Boop<space>
-" Or, use <ctrl-b> in visual mode to populate the boop pad with the selection
-"xnoremap <c-b> :BoopPadSelection<cr>
-
-
-" remap keys within the boop pad
-augroup boop_mapping
+augroup boop_user_mapping
     autocmd!
-    autocmd BufEnter,FileType boop call s:BoopMapping()
+    autocmd BufEnter,FileType boop call s:BoopUserMapping()
 augroup END
 
-function! s:BoopMapping()
-    " Within the scratch pad, press <ctrl-b> to run a script over the whole pad.
-    " Press <ctrl-l> to see a listing of all boop scripts.
-    nnoremap <buffer> <c-b> :BoopBuffer<space>
-    xnoremap <buffer> <c-b> :Boop<space>
+function! s:BoopUserMapping()
+    " Press <ctrl-l> to see a list of all boop scripts.
     nnoremap <buffer> <c-l> :ListBoopScripts<cr>
 endfunction
 ```
+
+## Usage
+Coming Soon
