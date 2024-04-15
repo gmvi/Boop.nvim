@@ -2,7 +2,7 @@ name: Boop
 
 on:
   push:
-    branches: [ "github-actions" ]
+    branches: [ "main", "github-actions" ]
   pull_request:
     branches: [ "main", "dev" ]
 
