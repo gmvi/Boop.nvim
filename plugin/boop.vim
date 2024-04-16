@@ -82,7 +82,6 @@ fun! s:install_binary()
         if g:boop#util#unixlike
             let l:output = system(g:boop#util#plugin_root . 'install_scripts/boop-nvim-install.sh')
         else
-            throw "TODO: write binary-download batch script"
             let l:output = system(g:boop#util#plugin_root . 'install_scripts/boop-nvim-install.bat')
         endif
         if v:shell_error == 0
@@ -96,21 +95,16 @@ fun! s:install_binary()
                 echom "[ERROR] Install script failed with error code (" . v:shell_error . ")"
             endif
             " ask if the user wants to install from source
-            let do_build = ""
+            let do_build = input("Do you want to build from source? This requires the rust build tools. (y/n) ")
             while 1
-                let do_build = input("Do you want to build from source? This requires the rust build tools. (y/n) ")
                 let do_build = boop#util#strip(do_build)
                 if do_build ==? 'y' || do_build ==? 'yes'
-                    let do_build = 1
                     break
                 elseif do_build ==? 'n' || do_build ==? 'no' 
-                    let do_build = 0
-                    break
+                    return 0
                 endif
+                let do_build = input("Didn't catch that (please type Yes or No). Build from source (requires rust)? ")
             endwhile
-            if !do_build
-                return 0
-            endif
         endif
     endif
     if g:boop#util#unixlike
@@ -318,5 +312,4 @@ endif
 if g:Boop_default_mappings
     nnoremap <c-b> :BoopPad<CR>
     xnoremap <c-b> :Boop<Space>
-    nnoremap <buffer> <c-b> :BoopBuffer<space>
 endif
