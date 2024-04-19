@@ -56,7 +56,7 @@ fun! s:BoopPad(mods) abort
     if s:boop_pad_ui == 'floating'
         call boop#floating#open_scratch()
         try
-            b \[Boop]
+            b [Boop]
             return
         catch
             " new buffer, continue on to set local options and mappings

@@ -37,7 +37,7 @@ Requires rust.
 4. (For Vim) Add the plugin to your favorite plugin manager by path, or
    move/symlink the Boop.vim/ directory into place. For vim8 native packages on
    Linux/MacOS you can do:  
-   `mkdir -p ~/.vim/pack/gmvi/start/ && ln -s . ~.vim/pack/gmvi/start/boop.vim`
+   `mkdir -p ~/.vim/pack/gmvi/start/ && ln -s . ~/.vim/pack/gmvi/start/boop.vim`
 5. (For Neovim) Add the plugin to your plugin manager by path.  
    For Lazy.nvim, I use `{ dir = "~/src/Boop.nvim" }`
 

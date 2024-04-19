@@ -4,7 +4,7 @@ if !exists('g:Boop_force_build')
     let g:Boop_force_build = 0
 endif
 
-fun! boop#check_firstrun()
+fun! boop#check_engine()
     if glob(g:boop#util#bin_path) ==# ""
         call s:install_engine()
     endif
@@ -41,33 +41,41 @@ fun! s:install_engine()
                 echom "[ERROR] Download script failed with error code ("..v:shell_error..")"
             endif
             " ask if the user wants to install from source
-            let do_build = input("Do you want to build from source now? This requires the rust build tools and will take a few minutes. (y/n) ")
+            let do_build = input("Build from source now? This requires the rust build tools and should take a few minutes (y/n) ")
             while 1
                 let do_build = boop#util#strip(do_build)
                 if do_build ==? 'y' || do_build ==? 'yes'
                     break
                 elseif do_build ==? 'n' || do_build ==? 'no'
-                    echom "To build from source directly, run :call boop#build_engine()"
+                    echom "To to initiate build from source, run :call boop#build_from_source()"
                     return 0
                 endif
-                let do_build = input("Didn't catch that (please type Yes or No). Build from source (requires rust)? ")
+                let do_build = input("Didn't catch that. Build from source now? Requires rust and takes a few minutes (y/n) ")
             endwhile
         endif
     endif
-    return boop#build_engine()
+    return boop#build_from_source()
 endfun
 
-fun! boop#build_engine()
+fun! boop#build_from_source()
+    let l:msg_pre = "Boop.nvim: building javascript engine from source"
     if g:boop#util#unixlike
+        echo l:msg_pre.." (this may take a few minutes)..."
         let l:output = system(g:boop#util#plugin_root..'install_scripts/boop-nvim-build.sh')
     else
+        echo l:msg_pre.." (this will take a while)..."
         let l:output = system(g:boop#util#plugin_root..'install_scripts/boop-nvim-build.bat')
     endif
     if v:shell_error == 0
-        " TODO add a way to re-run after a failed build, and add a friendly
-        " message about installing the requisite MSVC build tools on Windows.
+        echo "Boop.nvim: build succeeded!"
         return 1
     endif
+    " TODO add a way to re-run after a failed build, and add a friendly
+    " message about installing the requisite MSVC build tools on Windows.
+    echohl ErrorMsg
+    echom "[ERROR] Boop.nvim: build from source failed. Re-run with :call boop#build_from_source()"
+    echom l:output
+    echohl None
 endfun
 
 
