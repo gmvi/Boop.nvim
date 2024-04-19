@@ -8,8 +8,8 @@ else
     throw "boop.vim: unsupported platform"
 endif
 " define paths
-let g:boop#util#plugin_root = expand('<sfile>:p:h:h:h') . '/'
-let g:boop#util#bin_path = g:boop#util#plugin_root . 'bin/' . s:bin_name
+let g:boop#util#plugin_root = expand('<sfile>:p:h:h:h')..'/'
+let g:boop#util#bin_path = g:boop#util#plugin_root..'bin/'..s:bin_name
 
 fun! boop#util#strip(str)
     if v:version >= 801

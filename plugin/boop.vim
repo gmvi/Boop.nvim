@@ -1,127 +1,58 @@
 """ User Settings
-if !exists('g:Boop_use_floating')
-    let g:Boop_use_floating = 1
+if !exists('g:Boop_use_oldscratch')
+    let g:Boop_use_oldscratch = 0
+endif
+if !exists('g:Boop_use_oldsystem')
+    let g:Boop_use_oldsystem = 0
 endif
 "if !exists('g:Boop_use_palette')
 "    let g:Boop_use_palette = 1
 "endif
-if !exists('g:Boop_default_mappings')
-    let g:Boop_default_mappings = 1
-endif
-if !exists('g:Boop_build_source')
-    let g:Boop_build_source = 0
+if !exists('g:Boop_use_default_mappings')
+    let g:Boop_use_default_mappings = 1
 endif
 
-""" Select Implementation Details
-if has('nvim-0.6') && has('job')
+""" Select features based on vim/neovim version
+if has('nvim-0.6') && has('job') && !g:Boop_use_oldsystem
     let s:boop_engine_interface = 'job'
 else
     let s:boop_engine_interface = 'system'
 endif
-if has('nvim-0.5') && g:Boop_use_floating
+if has('nvim-0.5') && !g:Boop_use_oldscratch
     let s:boop_pad_ui = 'floating'
 else
     let s:boop_pad_ui = 'scratch'
 endif
-"if !g:Boop_use_palette
-"    let s:boop_palette = 'none'
-"elseif has('nvim-0.5')
+"if has('nvim-0.5') && g:Boop_use_palette
 "    let s:boop_palette = 'floating'
-"elseif v:version >= 802
+"elseif v:version >= 802 && g:Boop_use_palette
 "    let s:boop_palette = 'popup'
 "else
 "    let s:boop_palette = 'none'
 "endif
 
-" Set values here for development testing
-"let s:boop_engine_interface = 'job'
+" These overrides are for features not yet built
 let s:boop_engine_interface = 'system'
-"let s:boop_pad_ui = 'floating'
 let s:boop_palette = 'none'
 
-
-"" setup for nvim and vim
-"if s:boop_engine_interface == 'system'
-"    call boop#oldvim#init()
-"else " s:boop_engine_interface == 'job'
-"    " in the future, json vs msgpack may be determined by an if has('nvim')
-"    throw "s:boop_engine_interface == 'job' not implemented yet"
-"    call boop#neovim#init()
-"endif
-
+" Configure the selected features
+if s:boop_engine_interface == 'system'
+    call boop#oldvim#init()
+else " s:boop_engine_interface == 'job'
+    throw "s:boop_engine_interface == 'job' not implemented yet"
+    call boop#neovim#init()
+endif
 " Required for refocusing the scratch pad implementation
 " TODO: implement use of window ID like in NERDTree/NERDTreeFocus
-let s:scratch_window = -1
+"let s:scratch_window = -1
 if s:boop_pad_ui == 'scratch'
     set switchbuf +=useopen
 endif
 
-fun! s:check_firstrun()
-    " TODO: give user option to download or compile, like tmux-thumbs
-    if glob(g:boop#util#bin_path) !=# ""
-        return
-    endif
-    call s:install_binary()
-endfun
 
-fun! s:reinstall_binary()
-    " TODO: expose this to the user to re-install/build the binary
-    if g:boop#util#unixlike
-        call system("rm " . g:boop#util#bin_path)
-    else
-        call system("del " . g:boop#util#bin_path)
-    endif
-    call s:install_binary()
-endfun
-
-fun! s:install_binary()
-    let l:first_run_message = "It looks like this is your first time using Boop! Unfortunately a suitable prebuilt binary was not found and you will have to build the Javascript engine from source."
-
-    if !g:Boop_build_source
-        echo "Boop.nvim: installing javascript engine..."
-        if g:boop#util#unixlike
-            let l:output = system(g:boop#util#plugin_root . 'install_scripts/boop-nvim-install.sh')
-        else
-            let l:output = system(g:boop#util#plugin_root . 'install_scripts/boop-nvim-install.bat')
-        endif
-        if v:shell_error == 0
-            return 1
-        else
-            " Explain what's going on and ask if the user wants to build from source
-            echom l:first_run_message
-            if v:shell_error == 64
-                echom "[INFO] Prebuilt binaries are not currently available for MacOS on aarch64. If you'd like to help me troubleshoot: https://github.com/gmvi/Boop.nvim/issues/9"
-            elseif v:shell_error != 32
-                echom "[ERROR] Install script failed with error code (" . v:shell_error . ")"
-            endif
-            " ask if the user wants to install from source
-            let do_build = input("Do you want to build from source? This requires the rust build tools. (y/n) ")
-            while 1
-                let do_build = boop#util#strip(do_build)
-                if do_build ==? 'y' || do_build ==? 'yes'
-                    break
-                elseif do_build ==? 'n' || do_build ==? 'no' 
-                    return 0
-                endif
-                let do_build = input("Didn't catch that (please type Yes or No). Build from source (requires rust)? ")
-            endwhile
-        endif
-    endif
-    if g:boop#util#unixlike
-        throw "TODO: write build script"
-        let l:output = system(g:boop#util#plugin_root . 'install_scripts/boop-nvim-build.sh')
-    else
-        throw "TODO: write build script"
-        let l:output = system(g:boop#util#plugin_root . 'install_scripts/boop-nvim-build.bat')
-    endif
-    if v:shell_error == 0
-        return 1
-    endif
-endfun
-
-
+""" Main functions 
 fun! s:BoopPad(mods) abort
-    call s:check_firstrun()
+    call boop#check_engine()
     if s:boop_pad_ui == 'floating'
         call boop#floating#open_scratch()
         try
@@ -142,15 +73,14 @@ fun! s:BoopPad(mods) abort
     file \[Boop]
     setlocal nobuflisted buftype=nofile bufhidden=hide noswapfile
     setlocal filetype=boop
-    if g:Boop_default_mappings
+    if g:Boop_use_default_mappings
         nnoremap <buffer> <c-b> :BoopBuffer<space>
-        xnoremap <buffer> <c-b> :Boop<space>
     endif
 endfun
 
 " Open the boop pad with the most recent selection (using :normal! gv)
-fun! s:BoopPadSelection(mods) abort
-    call s:check_firstrun()
+fun! s:BoopPadFromSelection(mods) abort
+    call boop#check_engine()
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
     try
@@ -167,7 +97,7 @@ endfun
 fun! s:BoopCompletion(ArgLead, CmdLine, CursorPos) abort
     " TODO: implement this with the rpc interface, and do it correctly using the completion parameters
     if exists('g:boop#util#bin_path')
-        return system(g:boop#util#bin_path . " -l")
+        return system(g:boop#util#bin_path.." -l")
     endif
 endfun
 
@@ -199,7 +129,7 @@ fun! s:DoBoop(args) abort
         let l:output = system(join(l:cmd_list), l:input)
         if v:shell_error != 0
             echohl ErrorMsg
-            echom "Boop.vim: boop invocation failed (" . v:shell_error . ")"
+            echom "Boop.vim: boop invocation failed ("..v:shell_error..")"
             echohl None
         endif
         try
@@ -235,7 +165,7 @@ endfun
 
 " Boops the entire buffer
 fun! s:BoopBuffer(args) abort
-    call s:check_firstrun()
+    call boop#check_engine()
     let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
@@ -251,7 +181,7 @@ endfun
 " Boops the current line. Does not affect the recent selection (gv)
 " TODO: make this work linewise instead of just one single line
 fun! s:BoopLine(args) abort
-    call s:check_firstrun()
+    call boop#check_engine()
     let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old_contents = getreg(s:boop_reg)
@@ -271,7 +201,7 @@ endfun
 " Boops the most recent selection (i.e. the current selection if triggered from visual mode)
 " TODO: bugfix: `vap:boop [script]<cr>` removes a trailing newline
 fun! s:BoopSelection(args) abort
-    call s:check_firstrun()
+    call boop#check_engine()
     let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
@@ -286,7 +216,7 @@ endfun
 
 " Boop pad commands
 command! BoopPad call s:BoopPad(<q-mods>)
-command! -range BoopPadFromSelection call s:BoopPadSelection(<q-mods>)
+command! -range BoopPadFromSelection call s:BoopPadFromSelection(<q-mods>)
 " Boop commands
 if s:boop_palette == 'none'
     " If you invoke Boop with no arguments in oldvim, have it press tab for you
@@ -309,7 +239,7 @@ elseif has('win32')
     command! ListBoopScripts !echo.& boop -l
 endif
 
-if g:Boop_default_mappings
+if g:Boop_use_default_mappings
     nnoremap <c-b> :BoopPad<CR>
     xnoremap <c-b> :Boop<Space>
 endif

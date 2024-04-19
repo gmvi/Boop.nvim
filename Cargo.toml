@@ -1,6 +1,6 @@
 [package]
 name = "boop-vim"
-version = "0.1.0"
+version = "0.1.0-alpha.3"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -13,7 +13,7 @@ path = "src/main.rs"
 home = "0.5"
 directories = "5.0"
 fs_extra = "1.3"
-boop = {path = "submodules/Boop-rs"}
+boop = { path = "submodules/Boop-rs" }
 clap = { version = "=4.2", features = ["derive"] }
 eyre = "0.6.5"
 
