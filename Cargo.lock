@@ -154,7 +154,7 @@ dependencies = [
 
 [[package]]
 name = "boop-vim"
-version = "0.1.0"
+version = "0.1.0-alpha.3"
 dependencies = [
  "boop",
  "clap",
@@ -278,15 +278,6 @@ dependencies = [
  "serde_json",
  "toml 0.4.10",
  "yaml-rust",
-]
-
-[[package]]
-name = "crc32fast"
-version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3855a8a784b474f333699ef2bbca9db2c4a1f6d9088a90a2d25b1eb53111eaa"
-dependencies = [
- "cfg-if",
 ]
 
 [[package]]
@@ -503,15 +494,6 @@ name = "gimli"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fb8d784f27acf97159b40fc4db5ecd8aa23b9ad5ef69cdd136d3bc80665f0c0"
-
-[[package]]
-name = "gzip-header"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95cc527b92e6029a62960ad99aa8a6660faa4555fe5f731aab13aa6a921795a2"
-dependencies = [
- "crc32fast",
-]
 
 [[package]]
 name = "heck"
@@ -1187,15 +1169,12 @@ checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 
 [[package]]
 name = "v8"
-version = "0.90.1"
+version = "0.84.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1bcf540b968aed8a609e790ec7d25d064a70d62b48677cc9cff085528c56918"
+checksum = "a9205df12ea9e4e9e966c44a408b1b905ce8784ff70ef27c4ed1e73daec51b97"
 dependencies = [
  "bitflags 2.4.1",
  "fslock",
- "gzip-header",
- "home",
- "miniz_oxide",
  "once_cell",
  "which",
 ]

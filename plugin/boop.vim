@@ -1,63 +1,62 @@
 """ User Settings
-if !exists('g:Boop_use_floating')
-    let g:Boop_use_floating = 1
+if !exists('g:Boop_use_oldscratch')
+    let g:Boop_use_oldscratch = 0
+endif
+if !exists('g:Boop_use_oldsystem')
+    let g:Boop_use_oldsystem = 0
 endif
 "if !exists('g:Boop_use_palette')
 "    let g:Boop_use_palette = 1
 "endif
-if !exists('g:Boop_default_mappings')
-    let g:Boop_default_mappings = 1
+if !exists('g:Boop_use_default_mappings')
+    let g:Boop_use_default_mappings = 1
 endif
 
-""" Select Implementation Details
-if has('nvim-0.6') && has('job')
+""" Select features based on vim/neovim version
+if has('nvim-0.6') && has('job') && !g:Boop_use_oldsystem
     let s:boop_engine_interface = 'job'
 else
     let s:boop_engine_interface = 'system'
 endif
-if has('nvim-0.5') && g:Boop_use_floating
+if has('nvim-0.5') && !g:Boop_use_oldscratch
     let s:boop_pad_ui = 'floating'
 else
     let s:boop_pad_ui = 'scratch'
 endif
-"if !g:Boop_use_palette
-"    let s:boop_palette = 'none'
-"elseif has('nvim-0.5')
+"if has('nvim-0.5') && g:Boop_use_palette
 "    let s:boop_palette = 'floating'
-"elseif v:version >= 802
+"elseif v:version >= 802 && g:Boop_use_palette
 "    let s:boop_palette = 'popup'
 "else
 "    let s:boop_palette = 'none'
 "endif
 
-" Set values here for development testing
-"let s:boop_engine_interface = 'job'
+" These overrides are for features not yet built
 let s:boop_engine_interface = 'system'
-"let s:boop_pad_ui = 'floating'
 let s:boop_palette = 'none'
 
-
-"" setup for nvim and vim
-"if s:boop_engine_interface == 'system'
-"    call boop#oldvim#init()
-"else " s:boop_engine_interface == 'job'
-"    " in the future, json vs msgpack may be determined by an if has('nvim')
-"    throw "s:boop_engine_interface == 'job' not implemented yet"
-"    call boop#neovim#init()
-"endif
-
+" Configure the selected features
+if s:boop_engine_interface == 'system'
+    call boop#oldvim#init()
+else " s:boop_engine_interface == 'job'
+    throw "s:boop_engine_interface == 'job' not implemented yet"
+    call boop#neovim#init()
+endif
 " Required for refocusing the scratch pad implementation
 " TODO: implement use of window ID like in NERDTree/NERDTreeFocus
-let s:scratch_window = -1
+"let s:scratch_window = -1
 if s:boop_pad_ui == 'scratch'
     set switchbuf +=useopen
 endif
 
+
+""" Main functions 
 fun! s:BoopPad(mods) abort
+    call boop#check_engine()
     if s:boop_pad_ui == 'floating'
         call boop#floating#open_scratch()
         try
-            b \[Boop]
+            b [Boop]
             return
         catch
             " new buffer, continue on to set local options and mappings
@@ -74,14 +73,14 @@ fun! s:BoopPad(mods) abort
     file \[Boop]
     setlocal nobuflisted buftype=nofile bufhidden=hide noswapfile
     setlocal filetype=boop
-    if g:Boop_default_mappings
+    if g:Boop_use_default_mappings
         nnoremap <buffer> <c-b> :BoopBuffer<space>
-        xnoremap <buffer> <c-b> :Boop<space>
     endif
 endfun
 
 " Open the boop pad with the most recent selection (using :normal! gv)
-fun! s:BoopPadSelection(mods) abort
+fun! s:BoopPadFromSelection(mods) abort
+    call boop#check_engine()
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
     try
@@ -95,9 +94,11 @@ endfun
 
 """ Do the booping (core functions; user-facing commands below)
 
-fun! s:BoopCompletion(ArgLead, CmdLine, CursorPos)
+fun! s:BoopCompletion(ArgLead, CmdLine, CursorPos) abort
     " TODO: implement this with the rpc interface, and do it correctly using the completion parameters
-    return system("boop -l")
+    if exists('g:boop#util#bin_path')
+        return system(g:boop#util#bin_path.." -l")
+    endif
 endfun
 
 let s:boop_reg = 'x'
@@ -128,7 +129,7 @@ fun! s:DoBoop(args) abort
         let l:output = system(join(l:cmd_list), l:input)
         if v:shell_error != 0
             echohl ErrorMsg
-            echom "Boop.vim: boop invocation failed (" . v:shell_error . ")"
+            echom "Boop.vim: boop invocation failed ("..v:shell_error..")"
             echohl None
         endif
         try
@@ -164,6 +165,7 @@ endfun
 
 " Boops the entire buffer
 fun! s:BoopBuffer(args) abort
+    call boop#check_engine()
     let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
@@ -178,7 +180,8 @@ endfun
 
 " Boops the current line. Does not affect the recent selection (gv)
 " TODO: make this work linewise instead of just one single line
-function! s:BoopLine(args) abort
+fun! s:BoopLine(args) abort
+    call boop#check_engine()
     let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old_contents = getreg(s:boop_reg)
@@ -193,11 +196,12 @@ function! s:BoopLine(args) abort
         endif
     endtry
     call setreg(s:boop_reg, l:reg_old_contents)
-endfunction
+endfun
 
 " Boops the most recent selection (i.e. the current selection if triggered from visual mode)
 " TODO: bugfix: `vap:boop [script]<cr>` removes a trailing newline
-function! s:BoopSelection(args) abort
+fun! s:BoopSelection(args) abort
+    call boop#check_engine()
     let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
@@ -208,11 +212,11 @@ function! s:BoopSelection(args) abort
         endif
     endtry
     call setreg(s:boop_reg, l:reg_old)
-endfunction
+endfun
 
 " Boop pad commands
 command! BoopPad call s:BoopPad(<q-mods>)
-command! -range BoopPadFromSelection call s:BoopPadSelection(<q-mods>)
+command! -range BoopPadFromSelection call s:BoopPadFromSelection(<q-mods>)
 " Boop commands
 if s:boop_palette == 'none'
     " If you invoke Boop with no arguments in oldvim, have it press tab for you
@@ -235,3 +239,7 @@ elseif has('win32')
     command! ListBoopScripts !echo.& boop -l
 endif
 
+if g:Boop_use_default_mappings
+    nnoremap <c-b> :BoopPad<CR>
+    xnoremap <c-b> :Boop<Space>
+endif

@@ -15,11 +15,11 @@ fun! boop#oldvim#init() abort
         if !exists("g:boop#oldvim#boop_scratch_window")
             let g:boop#oldvim#boop_scratch_window = -1
         endif
-        call system(touch . " " . shellescape(g:boop#oldvim#info_file))
+        call system(touch.." "..shellescape(g:boop#oldvim#info_file))
         if v:shell_error != 0
             return
         endif
-        call system(touch . " " . shellescape(g:boop#oldvim#error_file))
+        call system(touch.." "..shellescape(g:boop#oldvim#error_file))
         if v:shell_error != 0
             return
         endif
