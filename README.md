@@ -1,39 +1,48 @@
 # Boop.nvim
 [Boop](https://github.com/IvanMathy/Boop) as a Neovim plugin. Vim is also
 supported, with a reduced feature set.
+
 > [!Note]
-> This project is currently tracking Boop v1.3.0 (script API version 1)
+> This project is currently tracking Boop v1.3.0 (script API version 1).  
 > Scripts that rely on script API version 2 are not supported at this time.
+
+> [!Important]
+> For now, prebuilt binaries are not available for newer Macbooks with the M-series chips.  
+> You can still build from source, and this requires [Rust](https://www.rust-lang.org/learn/get-started).
 
 
 ## Normal Installation
 Use your favorite plugin manager:
-* Lazy:
+* Lazy.nvim:
 `{ 'gmvi/Boop.nvim' }`
+* Pckr.nvim:
+`{ 'gmvi/Boop.nvim', run = 'git submodule update --init --recursive' }`
 * Plug: `Plug 'gmvi/Boop.nvim', { 'do': 'git submodule update --init --recursive' }`
 * Pathogen:
 `git clone https://github.com/gmvi/Boop.nvim.git --recurse-submodules ~/.vim/bundle/Boop.nvim`
 * Vim8 native package:
-`git clone https://github.com/gmvi/Boop.nvim.git --recurse-submodules ~/.vim/pack/gmvi/start/Boop.nvim`
+`git clone https://github.com/gmvi/Boop.nvim.git --recurse-submodules ~/.vim/pack/gmvi/start/Boop.nvim`  
 On Windows, replace `~/.vim` with `~/vimfiles` (for vim) or `~/AppData/Local/nvim` (for nvim).
 
 The first time you use Boop.nvim, it will try to download a prebuilt binary for
-the core engine. If a suitable binary isn't available then you'll have to build
-from source, which requires rust and may take a few minutes.
+the javascript engine. If a suitable binary isn't available then you'll have to build
+from source, which takes a few minutes and requires rust (and also [msvc build
+tools on Windows](https://rust-lang.github.io/rustup/installation/windows-msvc.html))
 
 Currently, prebuilt binary download is not available for the following platforms:
 * Macs with non-intel CPUs (e.g. M-series macbooks, 2020 and later)
 * All 32-bit platforms
-* Windows prior to Windows 10 (might work if you install
-  [curl.exe](https://curl.se/windows/); untested)
+* Windows prior to Windows 10 (but it might work if you install
+  [curl.exe](https://curl.se/windows/))
 
 
 ## Manual Install and Build from Source
-Requires rust.
+Requires [Rust](https://www.rust-lang.org/learn/get-started) (and also [msvc build
+tools on Windows](https://rust-lang.github.io/rustup/installation/windows-msvc.html))
 
 1. Clone this repo and initialize submodules:  
 `git clone https://github.com/gmvi/Boop.nvim.git --recurse-submodules && cd Boop.nvim`
-3. Build the boop engine binary: `cargo install --path . --root . --force`
+3. Build the javascript engine binary: `cargo install --path . --root . --force`
 4. (For Vim) Add the plugin to your favorite plugin manager by path, or
    move/symlink the Boop.vim/ directory into place. For vim8 native packages on
    Linux/MacOS you can do:  
