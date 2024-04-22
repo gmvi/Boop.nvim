@@ -1,9 +1,9 @@
 # Boop.nvim
-[Boop](https://github.com/IvanMathy/Boop) as a Neovim plugin. Vim is also
-supported, with a reduced feature set.
+[Boop](https://github.com/IvanMathy/Boop) as a Neovim plugin. Vim will be
+supported with a reduced feature set.
 
 > [!Note]
-> This project is currently tracking Boop v1.3.0 (script API version 1).  
+> This project is currently tracking Boop v1.3.0 (script API version 1).
 > Scripts that rely on script API version 2 are not supported at this time.
 
 > [!Important]
@@ -13,15 +13,13 @@ supported, with a reduced feature set.
 
 ## Normal Installation
 Use your favorite plugin manager:
-* Lazy.nvim:
+* Lazy.nvim / Pckr.nvim:
 `{ 'gmvi/Boop.nvim' }`
-* Pckr.nvim:
-`{ 'gmvi/Boop.nvim', run = 'git submodule update --init --recursive' }`
-* Plug: `Plug 'gmvi/Boop.nvim', { 'do': 'git submodule update --init --recursive' }`
+* Plug: `Plug 'gmvi/Boop.nvim'`
 * Pathogen:
-`git clone https://github.com/gmvi/Boop.nvim.git --recurse-submodules ~/.vim/bundle/Boop.nvim`
+`git clone https://github.com/gmvi/Boop.nvim.git ~/.vim/bundle/Boop.nvim`
 * Vim8 native package:
-`git clone https://github.com/gmvi/Boop.nvim.git --recurse-submodules ~/.vim/pack/gmvi/start/Boop.nvim`  
+`git clone https://github.com/gmvi/Boop.nvim.git ~/.vim/pack/gmvi/start/Boop.nvim`  
 On Windows, replace `~/.vim` with `~/vimfiles` (for vim) or `~/AppData/Local/nvim` (for nvim).
 
 The first time you use Boop.nvim, it will try to download a prebuilt binary for
