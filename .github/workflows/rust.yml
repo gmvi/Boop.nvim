@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-multi:
     name: Build - ${{ matrix.platform.release_for }}
     strategy:
       matrix:
@@ -21,7 +21,7 @@ jobs:
             target: aarch64-unknown-linux-gnu
             bin: boop
             bin-rename: boop-Linux-aarch64
-            command: build
+            command: both
 
           - release_for: Linux-x86_64
             name: boop-Linux-x86_64
@@ -31,13 +31,13 @@ jobs:
             bin-rename: boop-Linux-x86_64
             command: build
 
-            #- release_for: macOS-aarch64
-            #  name: boop-macOS-aarch64
-            #  os: macOS-latest
-            #  target: aarch64-apple-darwin
-            #  bin: boop
-            #  bin-rename: boop-macOS-aarch64
-            #  command: both
+          - release_for: macOS-aarch64
+            name: boop-macOS-aarch64
+            os: macOS-latest
+            target: aarch64-apple-darwin
+            bin: boop
+            bin-rename: boop-macOS-aarch64
+            command: build
 
           - release_for: macOS-x86_64
             name: boop-macOS-x86_64
@@ -55,14 +55,35 @@ jobs:
             bin-rename: boop-Win64.exe
             command: both
 
+            #- release_for: Android-aarch64
+            #  name: boop-android-aarch64
+            #  os: macOS-latest
+            #  target: aarch-linux-android
+            #  bin: boop
+            #  bin-rename: boop-android-aarch64
+            #  command: both
+
+            #- release_for: Android-armv7
+            #  name: boop-android-armv7
+            #  os: macOS-latest
+            #  target: armv7-linux-androideabi
+            #  bin: boop
+            #  bin-rename: boop-android-armv7
+            #  command: both
+
             # more release targets here ...
+
+
     runs-on: ${{ matrix.platform.os }}
     steps:
 
-      - name: Checkout Repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - run: rustup toolchain install stable --target ${{ matrix.platform.target }} --profile minimal
+
+      - uses: Swatinem/rust-cache@v2
 
       - name: Build Binary
         uses: houseabsolute/actions-rust-cross@v0
@@ -72,16 +93,14 @@ jobs:
           args: "--release --locked"
           strip: true
 
-      - name: Rename Binary
-        shell: bash
+      - shell: bash
         run: |
           target=${{ matrix.platform.target }}
-          bin_src=${{ matrix.platform.bin }}
-          bin_dst=${{ matrix.platform.bin_rename }}
-          mv target/$target/release/$bin_src bin/$bin_dst
+          bin=${{ matrix.platform.bin }}
+          bin_rename=${{ matrix.platform.bin_rename }}
+          mv target/$target/release/$bin bin/$bin_rename
 
-      - name: Upload Binary
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform.name }}
           path: bin/${{ matrix.platform.bin_rename }}
