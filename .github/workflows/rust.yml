@@ -20,7 +20,7 @@ jobs:
             os: ubuntu-22.04
             target: aarch64-unknown-linux-gnu
             bin: boop
-            bin-rename: boop-Linux-aarch64
+            bin_rename: boop-Linux-aarch64
             command: both
 
           - release_for: Linux-x86_64
@@ -28,7 +28,7 @@ jobs:
             os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             bin: boop
-            bin-rename: boop-Linux-x86_64
+            bin_rename: boop-Linux-x86_64
             command: build
 
           - release_for: macOS-aarch64
@@ -36,7 +36,7 @@ jobs:
             os: macOS-latest
             target: aarch64-apple-darwin
             bin: boop
-            bin-rename: boop-macOS-aarch64
+            bin_rename: boop-macOS-aarch64
             command: build
 
           - release_for: macOS-x86_64
@@ -44,7 +44,7 @@ jobs:
             os: macOS-latest
             target: x86_64-apple-darwin
             bin: boop
-            bin-rename: boop-macOS-x86_64
+            bin_rename: boop-macOS-x86_64
             command: both
 
           - release_for: Windows-x86_64
@@ -52,7 +52,7 @@ jobs:
             os: windows-latest
             target: x86_64-pc-windows-msvc
             bin: boop.exe
-            bin-rename: boop-Win64.exe
+            bin_rename: boop-Win64.exe
             command: both
 
             #- release_for: Android-aarch64
@@ -60,7 +60,7 @@ jobs:
             #  os: macOS-latest
             #  target: aarch-linux-android
             #  bin: boop
-            #  bin-rename: boop-android-aarch64
+            #  bin_rename: boop-android-aarch64
             #  command: both
 
             #- release_for: Android-armv7
@@ -68,7 +68,7 @@ jobs:
             #  os: macOS-latest
             #  target: armv7-linux-androideabi
             #  bin: boop
-            #  bin-rename: boop-android-armv7
+            #  bin_rename: boop-android-armv7
             #  command: both
 
             # more release targets here ...
@@ -93,7 +93,8 @@ jobs:
           args: "--release --locked"
           strip: true
 
-      - shell: bash
+      - name: Rename Binary
+        shell: bash
         run: |
           target=${{ matrix.platform.target }}
           bin=${{ matrix.platform.bin }}

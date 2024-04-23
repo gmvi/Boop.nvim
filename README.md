@@ -7,8 +7,9 @@ supported with a reduced feature set.
 > Scripts that rely on script API version 2 are not supported at this time.
 
 > [!Important]
-> For now, prebuilt binaries are not available for newer Macbooks with the M-series chips.  
-> You can still build from source, and this requires [Rust](https://www.rust-lang.org/learn/get-started).
+> This project does not support 32-bit platforms because [Deno](https://deno.com/)
+> does not support them.  
+> Additionally, Android is not supported at this time.
 
 
 ## Normal Installation
@@ -23,26 +24,29 @@ Use your favorite plugin manager:
 On Windows, replace `~/.vim` with `~/vimfiles` (for vim) or `~/AppData/Local/nvim` (for nvim).
 
 The first time you use Boop.nvim, it will try to download a prebuilt binary for
-the javascript engine. If a suitable binary isn't available then you'll have to build
-from source, which takes a few minutes and requires rust (and also [msvc build
-tools on Windows](https://rust-lang.github.io/rustup/installation/windows-msvc.html))
+the javascript engine. If a suitable binary isn't available then you'll have to
+build from source, which may be quite slow depending on your machine.
 
-Currently, prebuilt binary download is not available for the following platforms:
-* Macs with non-intel CPUs (e.g. M-series macbooks, 2020 and later)
-* All 32-bit platforms
+Currently, prebuilt binary download is not available for the following
+supported platforms:
 * Windows prior to Windows 10 (but it might work if you install
   [curl.exe](https://curl.se/windows/))
+* Android (e.g. Termux), but cross-compilation may be possible (see next section).
 
 
 ## Manual Install and Build from Source
-Requires [Rust](https://www.rust-lang.org/learn/get-started) (and also [msvc build
-tools on Windows](https://rust-lang.github.io/rustup/installation/windows-msvc.html))
+Requires [Rust](https://www.rust-lang.org/learn/get-started). On Windows, requires
+[msvc build tools](https://rust-lang.github.io/rustup/installation/windows-msvc.html).
+
+Android and all 32-bit platforms are not supported. Though you might be able to
+[cross-compile for 64-bit Android](https://doc.rust-lang.org/stable/rustc/platform-support/android.html)
+using this [3rd-party build of rusty_v8](https://github.com/fm-elpac/v8-src/releases/tag/rusty_v8-0.83.2).
 
 1. Clone this repo and initialize submodules:  
 `git clone https://github.com/gmvi/Boop.nvim.git --recurse-submodules && cd Boop.nvim`
 3. Build the javascript engine binary: `cargo install --path . --root . --force`
 4. (For Vim) Add the plugin to your favorite plugin manager by path, or
-   move/symlink the Boop.vim/ directory into place. For vim8 native packages on
+   move/symlink the Boop.nvim/ directory into place. For vim native packages on
    Linux/MacOS you can do:  
    `mkdir -p ~/.vim/pack/gmvi/start/ && ln -s . ~/.vim/pack/gmvi/start/boop.vim`
 5. (For Neovim) Add the plugin to your plugin manager by path.  

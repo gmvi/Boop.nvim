@@ -2,11 +2,11 @@
 
 SET install_target="%~dp0..\bin\boop.exe"
 SET repo="gmvi/Boop.nvim"
-SET tag="v0.1.0-alpha.3"
+SET tag="v0.1.0-beta.1"
 
 reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" > NUL && SET OS=32BIT || SET OS=64BIT
 
-:: Not supporting 32-bit windows for prebuilt binary download
+:: Not supporting 32-bit windows
 IF %OS%==64BIT (SET platform="Win64") ELSE (exit /b 132)
 
 ::for /f "tokens=3" %%i in ('reg Query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v CurrentBuildNumber') do SET Build=%%i
