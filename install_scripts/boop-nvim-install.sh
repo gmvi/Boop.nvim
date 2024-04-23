@@ -10,31 +10,32 @@ else
     platform="$(uname -sm)"
 fi
 
+exit 104
+
 case "$platform" in
     # Supported platforms
-    ("Darwin Arm64" | "Darwin aarch64")
+    Darwin\ Arm64|Darwin\ aarch64)
         platform="macOS-aarch64"
         ;;
-    ("Darwin x86_64")
+    Darwin\ x86_64)
         platform="macOS-x86_64"
         ;;
-    ("Linux aarch64")
+    Linux\ aarch64)
         platform="Linux-aarch64"
         ;;
-    ("Linux x86_64")
+    Linux\ x86_64)
         platform="Linux-x86_64"
         ;;
     # Unsupported platforms
-    ("Android" *)
+    Android\ *)
         exit 122
         ;;
-    (* i?86)
+    *\ i?86)
         exit 132
         ;;
-    (*)
+    *)
         exit 104
         ;;
-
 esac
 
 prebuilt_bin_url="https://github.com/$repo/releases/download/$tag/boop-$platform"

@@ -5,8 +5,10 @@ if !exists('g:Boop_force_build')
 endif
 
 fun! boop#check_engine()
-    if glob(g:boop#util#bin_path) ==# ""
-        call s:install_engine()
+    if glob(g:boop#util#bin_path) !=# ""
+        return 1
+    else
+        return s:install_engine()
     endif
 endfun
 
@@ -15,41 +17,48 @@ fun! boop#reinstall_engine()
 endfun
 
 fun! s:install_engine()
-    if !g:Boop_force_build
-        echo "Boop.nvim: installing javascript engine..."
-        if g:boop#util#unixlike
-            let l:output = system(g:boop#util#plugin_root..'install_scripts/boop-nvim-install.sh')
-        else
-            let l:output = system(g:boop#util#plugin_root..'install_scripts/boop-nvim-install.bat')
-        endif
-        if v:shell_error == 0
-            return 1
-        endif
-        " Explain what's going on and ask if the user wants to build from source
-        let l:message = "It looks like this is your first time using Boop.nvim! Unfortunately a suitable prebuilt binary was not found and you will have to build the Javascript engine from source."
-        let l:message_fatal = "Sorry, but it looks like Boop.nvim is not compatible with your computer hardware."
-        if v:shell_error == 164
-            echom l:message
-            echom "[INFO] Prebuilt binaries are not currently available for MacOS on ARM architecture. If you'd like to help: https://github.com/gmvi/Boop.nvim/issues/9"
-        elseif v:shell_error == 107
-            echom l:message
-            echom "[INFO] Prebuilt binary download likely failed because Curl.exe was not found."
-            echom "[INFO] You could install it from https://curl.se/windows and then re-run :call boop#reinstall_engine()"
-        elseif v:shell_error == 132
-            echom l:message_fatal
-            echom "[FATAL] Boop.nvim does not support 32-bit systems"
-            return 0
-        elseif v:shell_error == 122
-            echom l:message_fatal
-            echom "[FATAL] Boop.nvim does not currently support Android"
-            return 0
-        elseif v:shell_error != 104
-            echom l:message
-            echom "[ERROR] Download script failed with error code ("..v:shell_error..")"
-        endif
-        call s:confirm_build()
+    if g:Boop_force_build
+        return boop#build_from_source(0)
     endif
-    return boop#build_from_source(0)
+    echo "Boop.nvim: installing javascript engine..."
+    if g:boop#util#unixlike
+        let l:output = system(g:boop#util#plugin_root..'install_scripts/boop-nvim-install.sh')
+    else
+        let l:output = system(g:boop#util#plugin_root..'install_scripts/boop-nvim-install.bat')
+    endif
+    if v:shell_error == 0
+        return 1
+    endif
+    " Explain what's going on and ask if the user wants to build from source
+    let l:message = "It looks like this is your first time using Boop.nvim! Unfortunately a suitable prebuilt binary was not found and you will have to build the Javascript engine from source."
+    let l:message_fatal = "Sorry, but it looks like Boop.nvim is not compatible with your computer hardware."
+    if v:shell_error == 164
+        echom l:message
+        echom "[INFO] Prebuilt binaries are not currently available for MacOS on ARM architecture. If you'd like to help: https://github.com/gmvi/Boop.nvim/issues/9"
+    elseif v:shell_error == 107
+        echom l:message
+        echom "[INFO] Prebuilt binary download likely failed because Curl.exe was not found."
+        echom "[INFO] You could install it from https://curl.se/windows and retry with :call boop#reinstall_engine()"
+    elseif v:shell_error == 132
+        echohl ErrorMsg
+        echom l:message_fatal
+        echom "[FATAL] Boop.nvim does not support 32-bit systems"
+        echohl None
+        return 0
+    elseif v:shell_error == 122
+        echohl ErrorMsg
+        echom l:message_fatal
+        echom "[FATAL] Boop.nvim does not currently support Android"
+        echohl None
+        return 0
+    elseif v:shell_error != 104
+        echom l:message
+        echohl ErrorMsg
+        echom "[ERROR] Download script failed with error code ("..v:shell_error..")"
+        echom l:output
+        echohl None
+    endif
+    return boop#build_from_source(1)
 endfun
 
 fun! s:confirm_build()
@@ -58,16 +67,17 @@ fun! s:confirm_build()
     else
         let l:should = "will"
     endif
-    let do_build = input("Build from source now? This requires the rust build tools and "..l:should.." take a few minutes (y/n) ")
+    let l:do_build = input("Build from source now? This requires the rust build tools and "..l:should.." take a few minutes (y/n) ")
     while 1
-        let do_build = boop#util#strip(do_build)
-        if do_build ==? 'y' || do_build ==? 'yes'
+        let l:do_build = boop#util#strip(l:do_build)
+        if l:do_build ==? 'y' || l:do_build ==? 'yes'
             break
-        elseif do_build ==? 'n' || do_build ==? 'no'
-            echom "To to initiate build from source, run :call boop#build_from_source()"
+        elseif l:do_build ==? 'n' || l:do_build ==? 'no'
+            echom " "
+            echom "To initiate build from source, run :call boop#build_from_source()"
             return 0
         endif
-        let do_build = input("Didn't catch that. Build from source now? Requires rust and "..l:should.." take a few minutes (y/n) ")
+        let l:do_build = input("Didn't catch that. Build from source now? Requires rust and "..l:should.." take a few minutes (y/n) ")
     endwhile
     return 1
 endfun
@@ -90,7 +100,7 @@ fun! boop#build_from_source(...)
         return 1
     endif
     echohl ErrorMsg
-    echom "[ERROR] Boop.nvim: build from source failed. Re-run with :call boop#build_from_source()"
+    echom "[FATAL] Boop.nvim: build from source failed. Re-run with :call boop#build_from_source()"
     echom l:output
     echohl None
 endfun

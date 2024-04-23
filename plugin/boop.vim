@@ -52,11 +52,13 @@ endif
 
 """ Main functions 
 fun! s:BoopPad(mods) abort
-    call boop#check_engine()
+    if !boop#check_engine()
+        return
+    endif
     if s:boop_pad_ui == 'floating'
         call boop#floating#open_scratch()
         try
-            b [Boop]
+            b \[Boop]
             return
         catch
             " new buffer, continue on to set local options and mappings
@@ -80,7 +82,9 @@ endfun
 
 " Open the boop pad with the most recent selection (using :normal! gv)
 fun! s:BoopPadFromSelection(mods) abort
-    call boop#check_engine()
+    if !boop#check_engine()
+        return
+    endif
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
     try
@@ -165,7 +169,9 @@ endfun
 
 " Boops the entire buffer
 fun! s:BoopBuffer(args) abort
-    call boop#check_engine()
+    if !boop#check_engine()
+        return
+    endif
     let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
@@ -181,7 +187,9 @@ endfun
 " Boops the current line. Does not affect the recent selection (gv)
 " TODO: make this work linewise instead of just one single line
 fun! s:BoopLine(args) abort
-    call boop#check_engine()
+    if !boop#check_engine()
+        return
+    endif
     let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old_contents = getreg(s:boop_reg)
@@ -201,7 +209,9 @@ endfun
 " Boops the most recent selection (i.e. the current selection if triggered from visual mode)
 " TODO: bugfix: `vap:boop [script]<cr>` removes a trailing newline
 fun! s:BoopSelection(args) abort
-    call boop#check_engine()
+    if !boop#check_engine()
+        return
+    endif
     let script = len(a:args) ? a:args : boop#floating#open_scratch()
     " remember the user's old register contents
     let l:reg_old = getreg(s:boop_reg)
