@@ -13,8 +13,8 @@ let g:boop#util#bin_path = g:boop#util#plugin_root..'bin/'..s:bin_name
 
 fun! boop#util#strip(str)
     if v:version >= 801
-        return trim(str)
+        return trim(a:str)
     else
-        substitute(str, '^\s*\(.\{-}\)\s*$', '\1', '')
+        substitute(a:str, '^\s*\(.\{-}\)\s*$', '\1', '')
     endif
 endfun
