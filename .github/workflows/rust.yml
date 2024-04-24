@@ -15,6 +15,7 @@ jobs:
     strategy:
       matrix:
         platform:
+          # TODO: transition to macOS build
           - release_for: Linux-aarch64
             name: boop-Linux-aarch64
             os: ubuntu-22.04
@@ -57,19 +58,21 @@ jobs:
 
             #- release_for: Android-aarch64
             #  name: boop-android-aarch64
-            #  os: macOS-latest
-            #  target: aarch-linux-android
+            #  os: ubuntu-22.04
+            #  target: aarch64-linux-android
             #  bin: boop
             #  bin_rename: boop-android-aarch64
-            #  command: both
+            #  command: build
+            #  cargo_args: -vv
 
-            #- release_for: Android-armv7
-            #  name: boop-android-armv7
-            #  os: macOS-latest
-            #  target: armv7-linux-androideabi
+            #- release_for: Android-x86_64
+            #  name: boop-android-x86_64
+            #  os: ubuntu-22.04
+            #  target: x86_64-linux-android
             #  bin: boop
-            #  bin_rename: boop-android-armv7
-            #  command: both
+            #  bin_rename: boop-android-x86_64
+            #  command: build
+            #  cargo_args: -vv
 
             # more release targets here ...
 
@@ -81,16 +84,56 @@ jobs:
         with:
           submodules: recursive
 
-      - run: rustup toolchain install stable --target ${{ matrix.platform.target }} --profile minimal
+      - name: Setup
+        run: |
+          rustup toolchain install stable --target ${{ matrix.platform.target }} --profile minimal
+          pip3 install setuptools || pip3 install setuptools --break-system-packages
 
       - uses: Swatinem/rust-cache@v2
+
+      #- name: Build rusty_v8 from source for Android
+      #  shell: bash
+      #  run: |
+      #    mkdir .cargo
+      #    echo "[env]" > .cargo/config.toml
+      #    echo 'V8_FROM_SOURCE = "1"' >> .cargo/config.toml
+      #    echo 'RUST_BACKTRACE = "1"' >> .cargo/config.toml
+      #  if: contains(fromJson('["aarch64-linux-android","x86_64-linux-android"]'), matrix.platform.target)
+
+      #- name: Download rusty_v8 for Android
+      #  shell: bash
+      #  run: |
+      #    #set -e
+      #    platform=${{ matrix.platform.target }}
+      #    if [   $platform != "aarch64-linux-android" \
+      #        -a $platform != "x86_64-linux-android" ]; then
+      #      exit
+      #    fi
+      #    repo=fm-elpac/v8-src
+      #    tag=rusty_v8-0.83.2
+      #    url="https://github.com/$repo/releases/download/$tag/librusty_v8_release_$platform.a.zst"
+      #    # Trick rusty_v8 into using this build
+      #    rusty_v8_cache="https://github.com/denoland/rusty_v8/releases/download/v0.83.2"
+      #    rusty_v8_cache="${rusty_v8_cache}/librusty_v8/release/${platform}.a"
+      #    rusty_v8_cache="$(echo $rusty_v8_cache | sed s/[^a-zA-Z0-9]/_/g )"
+      #    rusty_v8_cache="~/.cargo/.rusty_v8/$rusty_v8_cache"
+      #    curl -Lso librusty_v8.a.zst "$url"
+      #    zstd -d librusty_v8.a.zst
+      #    mkdir -p "$(dirname $rusty_v8_cache)"
+      #    mv librusty_v8.a $rusty_v8_cache
+      #    if [ -f $rusty_v8_cache ]; then
+      #      echo "rusty_v8 cache populated: $rusty_v8_cache"
+      #    fi
+      #    # The above does not work because this old version of rusty_v8
+      #    # doesn't use a download cache. Setting RUSTY_V8_ARCHIVE didn't work
+      #    # either.
 
       - name: Build Binary
         uses: houseabsolute/actions-rust-cross@v0
         with:
           command: ${{ matrix.platform.command }}
           target: ${{ matrix.platform.target }}
-          args: "--release --locked"
+          args: "--release --locked ${{ matrix.platform.cargo_args }}"
           strip: true
 
       - name: Rename Binary
