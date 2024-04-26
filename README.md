@@ -27,8 +27,7 @@ The first time you use Boop.nvim, it will try to download a prebuilt binary for
 the javascript engine. If a suitable binary isn't available then you'll have to
 build from source, which may be quite slow depending on your machine.
 
-Currently, prebuilt binary download is not available for the following
-supported platforms:
+Currently, prebuilt binary download is not available for the following platforms:
 * Windows prior to Windows 10 (but it might work if you install
   [curl.exe](https://curl.se/windows/))
 * Android (e.g. Termux), but cross-compilation may be possible (see next section).
