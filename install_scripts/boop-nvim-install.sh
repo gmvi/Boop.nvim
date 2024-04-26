@@ -37,6 +37,7 @@ case "$platform" in
 esac
 
 prebuilt_bin_url="https://github.com/$repo/releases/download/$tag/boop-$platform"
+mkdir -p "$(dirname "$install_target")"
 set -e # exit if curl fails
 curl -Lso "$install_target" "$prebuilt_bin_url"
 chmod u+x "$install_target"

@@ -18,6 +18,8 @@ SET prebuilt_bin_url="https://github.com/%repo%/releases/download/%tag%/boop-%pl
 :: but older 64-bit Windows should work, so try to download if curl.exe is available.
 where curl.exe >NUL 2>NUL
 IF NOT ERRORLEVEL 1 (
+    REM : Forcing %install_target% into a %% to enable %%~dp
+    for %%F in (%install_target%) do mkdir %%~dpF
     curl.exe -Lso "%install_target%" "%prebuilt_bin_url%"
 ) ELSE (
     exit /b 107
