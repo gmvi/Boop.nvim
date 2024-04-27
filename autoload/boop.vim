@@ -1,19 +1,41 @@
-""" This file contains functions for installing the scripting engine
+""" This file contains globals and functions for installing the scripting engine
 
+if !exists('g:Boop_use_oldscratch')
+    let g:Boop_use_oldscratch = 0
+endif
+if !exists('g:Boop_use_oldsystem')
+    let g:Boop_use_oldsystem = 0
+endif
+if !exists('g:Boop_use_palette')
+    let g:Boop_use_palette = 1
+endif
+if !exists('g:Boop_use_default_mappings')
+    let g:Boop_use_default_mappings = 1
+endif
+if !exists('g:Boop_default_action')
+    let g:Boop_default_action = '%'
+endif
 if !exists('g:Boop_force_build')
     let g:Boop_force_build = 0
 endif
+""" turn features on/off based on vim/neovim version and g:Boop_use_ settings
+let g:boop#use_engine = has('nvim-0.6') && has('job') && !g:Boop_use_oldsystem
+            \ ? 'job' : 'system'
+let g:boop#use_floating = has('nvim-0.5') && !g:Boop_use_oldscratch
+let g:boop#use_palette = !g:Boop_use_palette
+            \ ? 'none'
+            \ : has('nvim-0.5') ? 'floating'
+            \ : v:version >= 802 ? 'popup'
+            \ : 'none'
+
 
 fun! boop#check_engine(...)
     " if the binary is found, assume it installed correctly
     if glob(g:boop#util#bin_path) !=# ""
         return 1
-    " if a:1 is falsey, don't install the engine
-    elseif a:0 && !a:1
-        return 0
-    else
-        return s:install_engine()
     endif
+    " if the first argument is 0, don't install the engine
+    return (a:0 && !a:1) ? 0 : s:install_engine()
 endfun
 
 fun! boop#reinstall_engine()
