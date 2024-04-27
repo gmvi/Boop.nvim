@@ -4,9 +4,13 @@ if !exists('g:Boop_force_build')
     let g:Boop_force_build = 0
 endif
 
-fun! boop#check_engine()
+fun! boop#check_engine(...)
+    " if the binary is found, assume it installed correctly
     if glob(g:boop#util#bin_path) !=# ""
         return 1
+    " if a:1 is falsey, don't install the engine
+    elseif a:0 && !a:1
+        return 0
     else
         return s:install_engine()
     endif

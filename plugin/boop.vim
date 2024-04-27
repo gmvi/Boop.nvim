@@ -99,10 +99,22 @@ endfun
 """ Do the booping (core functions; user-facing commands below)
 
 fun! s:BoopCompletion(ArgLead, CmdLine, CursorPos) abort
-    " TODO: implement this with the rpc interface, and do it correctly using the completion parameters
-    if exists('g:boop#util#bin_path')
-        return system(g:boop#util#bin_path.." -l")
+    if !boop#check_engine(v:false)
+        return
     endif
+    let l:idx_first_space = stridx(a:CmdLine, ' ')
+    let l:left_of_cursor = a:CmdLine[l:idx_first_space+1:a:CursorPos]
+    let l:len_prev_args = a:CursorPos - strlen(a:ArgLead) - l:idx_first_space - 1
+    " get the list of scripts
+    if s:boop_engine_interface == "system"
+        let l:script_list = split(system(g:boop#util#bin_path.." -l"), '\n')
+    else "s:boop_engine_interface == 'job'
+        throw "s:boop_engine_interface == 'job' not implemented yet"
+    endif
+    let l:matches = filter(l:script_list, 'v:val =~ "^"..l:left_of_cursor')
+    " because the completion engine only understands space-separated
+    " arguments, trim the previous arguments off each match
+    return map(l:matches, 'v:val[l:len_prev_args:]')
 endfun
 
 let s:boop_reg = 'x'
@@ -225,20 +237,22 @@ fun! s:BoopSelection(args) abort
 endfun
 
 " Boop pad commands
+" In vim the boop pad opens as a split, so apply <q-mods>
 command! BoopPad call s:BoopPad(<q-mods>)
 command! -range BoopPadFromSelection call s:BoopPadFromSelection(<q-mods>)
 " Boop commands
 if s:boop_palette == 'none'
     " If you invoke Boop with no arguments in oldvim, have it press tab for you
-    command! -nargs=* -complete=custom,s:BoopCompletion -range Boop 
+    command! -nargs=* -complete=customlist,s:BoopCompletion -range Boop 
         \ eval <q-args>=="" ? feedkeys(":Boop \<Tab>", 't') : s:BoopSelection(<q-args>)
-    command! -nargs=* -complete=custom,s:BoopCompletion BoopBuffer
+    command! -nargs=* -complete=customlist,s:BoopCompletion BoopBuffer
         \ eval <q-args>=="" ? feedkeys(":BoopBuffer \<Tab>", 't') : s:BoopBuffer(<q-args>)
     "command! -nargs=* -complete=custom,s:BoopCompletion BoopLine
     "    \ eval <q-args>=="" ? feedkeys(":BoopLine \<Tab>", 't') : s:BoopLine(<q-args>)
 else
-    command! -nargs=* -complete=custom,s:BoopCompletion -range Boop call s:BoopSelection(<q-args>)
-    command! -nargs=* -complete=custom,s:BoopCompletion BoopBuffer call s:BoopBuffer(<q-args>)
+    " In neovim, calling these commands with no arguments will open the floating palette
+    command! -nargs=* -complete=customlist,s:BoopCompletion -range Boop call s:BoopSelection(<q-args>)
+    command! -nargs=* -complete=customlist,s:BoopCompletion BoopBuffer call s:BoopBuffer(<q-args>)
     "command! -nargs=* -complete=custom,s:BoopCompletion BoopLine call s:BoopLine(<q-args>)
 endif
 " Command to display the list of available scripts
