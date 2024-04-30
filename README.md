@@ -79,8 +79,8 @@ let g:Boop_default_action = '.'
 :let g:Boop_default_action = 'pad:visual'
 ```
 
-Using the default keybinds, Ctrl-B will open the Boop scratchpad from normal
-mode. Pressing Ctrl-B within this scratch which runs a boop script on the entire scratch pad (or any
+Using the default keybinds, Ctrl-B will open the Boop scratchpad from normal mode.
+Pressing Ctrl-B within this scratch runs a boop script on the entire scratch pad (or any
 file). In visual mode, Ctrl-B will similarly populate your Vim command line
 with `:'<,'>Boop `, which will run a boop script on only the current selection
 (once, not linewise).
@@ -118,6 +118,6 @@ using this [3rd-party build of rusty_v8](https://github.com/fm-elpac/v8-src/rele
 4. (For Vim) Add the plugin to your favorite plugin manager by path, or
    move/symlink the Boop.nvim/ directory into place. For vim native packages on
    Linux/MacOS you can do:  
-   `mkdir -p ~/.vim/pack/gmvi/start/ && ln -s . ~/.vim/pack/gmvi/start/boop.vim`
+   `mkdir -p ~/.vim/pack/gmvi/start/ && ln -s . ~/.vim/pack/gmvi/start/Boop.nvim`
 5. (For Neovim) Add the plugin to your plugin manager by path.  
    For Lazy.nvim, I use `{ dir = "~/src/Boop.nvim" }`

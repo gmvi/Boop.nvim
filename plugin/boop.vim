@@ -30,14 +30,14 @@ if g:Boop_use_default_mappings
 endif
 
 " Command definitions
-command! -range BoopPad call s:CmdBoopPad(<q-mods>, <range>)
+command! -range BoopPad call s:BoopPad(<q-mods>, <range>)
 command! -range -nargs=? -complete=customlist,s:BoopCompletion Boop
-            \ call s:CmdBoop(<q-args>, <q-mods>, <range>, <line1>, <line2>)
+            \ call s:Boop(<q-args>, <q-mods>, <range>, <line1>, <line2>)
 command! ListBoopScripts call boop#oldvim#ListBoopScripts()
 
 
 """ The Boop Pad
-fun! s:CmdBoopPad(mods, range) abort
+fun! s:BoopPad(mods, range) abort
     if !boop#check_engine() | return | endif
     " if the default is a floating window, then ignore that if a directional
     " split modifier is present
@@ -88,7 +88,11 @@ fun! s:open_boop_pad(mods) abort
     setlocal nobuflisted buftype=nofile bufhidden=hide noswapfile
     setlocal filetype=boop
     if g:Boop_use_default_mappings
-        nnoremap <buffer> <c-b> :%Boop<space>
+        if g:boop#use_palette == 'none'
+            nnoremap <buffer> <c-b> :%Boop<Space>
+        else
+            nnoremap <buffer> <c-b> :%Boop<CR>
+        endif
     endif
 endfun
 
@@ -133,11 +137,7 @@ fun! s:apply_boop_script(args) abort
             return 0
         endif
 
-        if g:boop#util#unixlike
-            let l:stderr_mute = '2>/dev/null'
-        else " has('win32')
-            let l:stderr_mute = '2>NUL'
-        endif
+        let l:stderr_mute = g:boop#util#unixlike ? '2>/dev/null' : '2>NUL'
         " info and error files will be overwritten
         let l:cmd_list = [ g:boop#util#bin_path,
                          \ '--info-file', g:boop#oldvim#info_file,
@@ -147,35 +147,32 @@ fun! s:apply_boop_script(args) abort
                          \ ]
 
         let l:output = system(join(l:cmd_list), l:input)
-        if v:shell_error != 0
-            echohl ErrorMsg
-            echom "Boop.vim: boop invocation failed ("..v:shell_error..")"
-            echohl None
-        endif
-        try
+        " print any errors and print info only on successful exit code
+        echohl ErrorMsg
+<F7>        try
             let l:error_output = readfile(g:boop#oldvim#error_file)
             if len(l:error_output) > 0
-                echohl ErrorMsg
                 echom trim(join(l:error_output, "\n"))
-                echohl None
             endif
         endtry
 
         if v:shell_error != 0
+            echom "Boop.vim: boop invocation failed ("..v:shell_error..")"
+            echohl None
             return 0
         endif
 
+        echohl MoreMsg
         try
             let l:info_output = readfile(g:boop#oldvim#info_file)
             if len(l:info_output) > 0
-                echohl MoreMsg
                 echom trim(join(l:info_output, "\n"))
-                echohl None
             endif
         endtry
+        echohl None
 
         call setreg(s:boop_register, l:output)
-        " return success if input and output are different lines
+        " return success if input and output are different
         return l:input !=# split(l:output, '\r\?\n', 1)
 
     else "s:boop_engine_interface == 'job'
@@ -184,7 +181,7 @@ fun! s:apply_boop_script(args) abort
     endif
 endfun
 
-fun! s:CmdBoop(args, mods, range, line1, line2) abort
+fun! s:Boop(args, mods, range, line1, line2) abort
     " Boops either a range of lines, or (from visual mode) the most recent selection
     " TODO: bugfix: `vap:boop [script]<cr>` removes a preceding newline
     if !boop#check_engine()
