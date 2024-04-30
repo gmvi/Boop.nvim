@@ -1,4 +1,6 @@
 target/
-bin/boop*
-.crates.toml
-.crates2.json
+bin/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+*~
