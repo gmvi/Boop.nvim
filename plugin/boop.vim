@@ -1,25 +1,42 @@
 let s:boop_register = 'x'
 
-" These overrides are for features not yet built
+" These overrides are for features not built yet
 let g:boop#use_engine = 'system'
 let g:boop#use_palette = 'none'
 
-" Initialize the engine
+" Initialize the features
 if g:boop#use_engine == 'system'
     call boop#oldvim#init()
 else " g:boop#use_engine == 'job'
     throw "g:boop#use_engine == 'job' not implemented yet"
     call boop#neovim#init()
 endif
-" Required for refocusing the scratch pad implementation
-" TODO: implement use of window ID like in NERDTree/NERDTreeFocus
-"let s:scratch_window = -1
 if !g:boop#use_floating
+    " Required for refocusing the scratch pad
+    " TODO: implement use of window ID like in NERDTree/NERDTreeFocus
+    "let s:scratch_window = -1
     set switchbuf +=useopen
 endif
 
+" Default mappings
+if g:Boop_use_default_mappings
+    " TODO: what effect would using <cmd> mappings have here?
+    nnoremap <c-b> :BoopPad<CR>
+    if g:boop#use_palette == 'none'
+        vnoremap <c-b> :Boop<Space>
+    else
+        vnoremap <c-b> :Boop<CR>
+    endif
+endif
 
-""" Main functions 
+" Command definitions
+command! -range BoopPad call s:CmdBoopPad(<q-mods>, <range>)
+command! -range -nargs=? -complete=customlist,s:BoopCompletion Boop
+            \ call s:CmdBoop(<q-args>, <q-mods>, <range>, <line1>, <line2>)
+command! ListBoopScripts call boop#oldvim#ListBoopScripts()
+
+
+""" The Boop Pad
 fun! s:CmdBoopPad(mods, range) abort
     if !boop#check_engine() | return | endif
     " if the default is a floating window, then ignore that if a directional
@@ -89,6 +106,7 @@ fun! s:BoopPadFromSelection(mods) abort
 endfun
 
 
+""" Boop command
 fun! s:BoopCompletion(ArgLead, CmdLine, CursorPos) abort
     if !boop#check_engine(v:false) | return | endif
     let l:idx_first_space = stridx(a:CmdLine, ' ')
@@ -106,8 +124,8 @@ fun! s:BoopCompletion(ArgLead, CmdLine, CursorPos) abort
     return map(l:matches, 'v:val[l:len_prev_args:]')
 endfun
 
-fun! s:DoBoop(args) abort
-    " the additional arguments to getreg tell it not to translate NULs to newlines
+fun! s:apply_boop_script(args) abort
+    " these additional arguments to getreg turn off conversion of NULs to newlines
     let l:input = getreg(s:boop_register, 1, 1)
     if g:boop#use_engine == "system"
         if !boop#oldvim#init()
@@ -166,31 +184,24 @@ fun! s:DoBoop(args) abort
     endif
 endfun
 
-" Boops either a range of lines, or (from visual mode) the most recent selection
 fun! s:CmdBoop(args, mods, range, line1, line2) abort
+    " Boops either a range of lines, or (from visual mode) the most recent selection
     " TODO: bugfix: `vap:boop [script]<cr>` removes a preceding newline
     if !boop#check_engine()
         return
     endif
-    let l:from_visual = 0
-    if a:range == 2 && histget(':', -1)[:4] ==# "'<,'>"
-        let l:from_visual = 1
-        " if invoked from visual mode with no script and g:Boop_default_action
-        " is 'fromselection', then load the selection into the Boop pad
-        if !strlen(a:args) && g:Boop_default_action =~ '^\.\?fromselection$'
-            return s:BoopPadFromSelection('')
-        endif
-    else
-        " if invoked from normal mode with no script and g:Boop_default_action is
-        " 'pad' or 'fromselection', then open the Boop pad
-        if !strlen(a:args) && g:Boop_default_action =~ '^\.\?\(pad\|fromselection\)$'
-            return s:BoopPad(a:mods, a:range)
-        endif
-    endif
-    " If you invoke :Boop with no arguments in oldvim, start completion
+    let l:from_visual = (a:range == 2 && histget(':', -1)[:4] ==# "'<,'>")
+    " if invoked with no script, open the boop pad if g:Boop_default_action is
+    " 'pad' (only for normal mode) or 'fromselection' (normal and visual modes)
+    if !strlen(a:args) && ( ( !l:from_visual && g:Boop_default_action =~ '^[.%]\?pad$' )
+                \           || g:Boop_default_action =~ '^[.%]\?fromselection$' )
+        return s:BoopPad(a:mods, a:range)
+    end
+    " Otherwise if invoked with no script in oldvim, start completion
     if g:boop#use_palette == 'none' && !strlen(a:args)
         return boop#oldvim#press_tab('Boop')
     endif
+    " Otherwise if invoked with no script, open the script palette
     let script = strlen(a:args) ? a:args : boop#floating#open_palette()
     if !strlen(script)
         echohl ErrorMsg | echom "[Boop.nvim] Error: no script selected" | echohl None
@@ -202,32 +213,29 @@ fun! s:CmdBoop(args, mods, range, line1, line2) abort
         if l:from_visual
             " if the command was triggered from visual mode, then boop the selection
             silent exec 'normal!' 'gv"'..s:boop_register..'y'
-            let l:boop_success = s:DoBoop(script)
-            if l:boop_success
+            if s:apply_boop_script(script)
                 " only paste if the script succeeded
                 silent exec 'normal!' 'gv"'..s:boop_register..'p'
             endif
         else " normal mode
-            if a:line1==0 && a:line2==line('$')
-                " if the range is the whole buffer, track it as % for later
+            " set range to % if no range given and '.' is not the default
+            " also set range to % if the range is the whole buffer
+            if (a:range == 0 && g:Boop_default_action[0] != '.')
+                        \ || (a:line1 == 0 && a:line2 == line('$'))
                 let l:range = '%'
             else
                 let l:range = a:line1..','..a:line2
             endif
-            " if no range was given and '.' is not the default range, boop the whole buffer
-            if a:range == 0 && g:Boop_default_action[0] != '.'
-                let l:range = '%'
-            endif
             silent exec l:range 'yank' s:boop_register
-            let l:boop_success = s:DoBoop(script)
-            if l:boop_success
+            if s:apply_boop_script(script)
                 " only paste if the script succeeded
                 silent exec l:range 'delete _'
-                silent exec line('.')-1 'put' s:boop_register
-                " %delete creates an extra newline
+                silent exec line('.') 'put' s:boop_register
+                " %delete creates an extra newline; remove it
                 if l:range == '%' && line('$') > 1
-                    silent exec '$delete _'
+                    silent 0delete _
                 endif
+                "TODO: iron out newline behavior, compare to boop apps
                 "TODO: return to the original cursor position
             endif
         endif
@@ -236,23 +244,3 @@ fun! s:CmdBoop(args, mods, range, line1, line2) abort
     endtry
 endfun
 
-" Command definitions
-command! -range BoopPad call s:CmdBoopPad(<q-mods>, <range>)
-command! -range -nargs=? -complete=customlist,s:BoopCompletion Boop
-            \ call s:CmdBoop(<q-args>, <q-mods>, <range>, <line1>, <line2>)
-command! ListBoopScripts call boop#oldvim#ListBoopScripts()
-
-
-
-fun! s:apply_default_mappings()
-    " TODO: what effect would using <cmd> mappings have here?
-    nnoremap <c-b> :BoopPad<CR>
-    if g:boop#use_palette == 'none'
-        vnoremap <c-b> :Boop<Space>
-    else
-        vnoremap <c-b> :Boop<CR>
-    endif
-endfun
-if g:Boop_use_default_mappings
-    call s:apply_default_mappings()
-endif
