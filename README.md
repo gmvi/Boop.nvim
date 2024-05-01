@@ -1,15 +1,18 @@
 # Boop.nvim
-[Boop](https://github.com/IvanMathy/Boop) as a Neovim plugin. Vim will be
-supported with a reduced feature set.
+[Boop](https://github.com/IvanMathy/Boop) as a Neovim plugin.
+Vim will be supported with a reduced feature set.
+
+Do you find yourself pasting text into websites to do things like convert smart quotes or apply SpOngE caSe?
+Don't risk accidentally pasting company-confidential data into strange websites, use Boop to keep your data local.
 
 > [!Note]
-> This project is currently tracking Boop v1.3.0 (script API version 1).
-> Scripts that rely on script API version 2 are not supported at this time.
+> This project is currently tracking Boop.app v1.3.0 (script API version 1).
+> Scripts that rely on script API version 2 are not supported yet.
 
 > [!Important]
 > This project does not support 32-bit platforms because [Deno](https://deno.com/)
 > does not support them.  
-> Additionally, Android is not supported at this time.
+> Additionally, Android (Termux) is not supported at this time.
 
 
 ## Normal Installation
@@ -27,8 +30,7 @@ The first time you use Boop.nvim, it will try to download a prebuilt binary for
 the javascript engine. If a suitable binary isn't available then you'll have to
 build from source, which may be quite slow depending on your machine.
 
-Currently, prebuilt binary download is not available for the following
-supported platforms:
+Currently, prebuilt binary download is not available for the following platforms:
 * Windows prior to Windows 10 (but it might work if you install
   [curl.exe](https://curl.se/windows/))
 * Android (e.g. Termux), but cross-compilation may be possible (see next section).
