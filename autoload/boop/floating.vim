@@ -20,12 +20,10 @@ fun! boop#floating#open_scratch() abort
     augroup END
 endfun
 
-fun! boop#floating#open_palette() abort
-    if s:boop_palette == 'floating'
-        throw "s:boop_palette == 'floating' not implemented yet"
-    elseif s:boop_palette == 'popup'
-        throw "s:boop_palette == 'popup' not implemented yet"
+fun! boop#floating#open_palette()
+    if has('nvim')
+        throw "floating palette not implemented yet"
     else " s:boop_palette == 'none'
-        throw "Boop.vim: s:OpenBoopPalette() called with s:boop_palette == 'none'"
+        throw "floating palette not supported in vim"
     endif
 endfun
