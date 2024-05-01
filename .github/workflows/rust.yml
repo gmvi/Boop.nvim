@@ -90,7 +90,7 @@ jobs:
         with:
           command: ${{ matrix.platform.command }}
           target: ${{ matrix.platform.target }}
-          args: "--release --locked"
+          args: "--release"
           strip: true
 
       - name: Rename Binary
