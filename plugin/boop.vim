@@ -36,22 +36,9 @@ command! -range -nargs=? -complete=customlist,s:BoopCompletion Boop
 command! ListBoopScripts call boop#oldvim#ListBoopScripts()
 
 
-""" The Boop Pad
+""" The Boop scratch pad emulates the conveniences of the Boop app for MacOS
 fun! s:BoopPad(mods, range) abort
     if !boop#check_engine() | return | endif
-    " if the default is a floating window, then ignore that if a directional
-    " split modifier is present
-    let l:use_floating = g:boop#use_floating
-    if l:use_floating && a:mods
-        for m in [ 'aboveleft', 'belowright', 'botright', 'horizontal',
-                 \ 'leftabove', 'rightbelow', 'tab', 'topleft', 'vertical',
-                 \ ]
-            if stridx(a:mods, m) >= 0
-                let l:use_floating = 0
-                break
-            endif
-        endfor
-    endif
     " if invoked from visual mode, copy the selection into the scratch pad
     let l:from_visual = 0
     let l:reg_old_contents = getreg(s:boop_register)
@@ -59,34 +46,51 @@ fun! s:BoopPad(mods, range) abort
         let l:from_visual = 1
         silent exec "normal!" "gv\""..s:boop_register.."y"
     endif
-    call s:open_boop_pad(a:mods)
+    " if the default is a floating window, then ignore that if a directional
+    " split modifier is present
+    let l:force_split = !g:boop#use_floating
+    if !l:force_split && a:mods != ''
+        for m in [ 'aboveleft', 'belowright', 'botright', 'horizontal',
+                 \ 'leftabove', 'rightbelow', 'tab', 'topleft', 'vertical',
+                 \ ]
+            if stridx(a:mods, m) >= 0
+                let l:force_split = 1
+                break
+            endif
+        endfor
+    endif
+    if !l:force_split
+        call boop#floating#open_scratch()
+        try
+            " switch the floating window to the buffer named \[Boop]
+            buffer \[Boop]
+            return
+        catch
+            call s:configure_booppad_buffer()
+        endtry
+    else
+        " switch to the window containing the buffer or else open one per <mods>
+        try
+            exec a:mods "sbuffer \\[Boop]"
+            return
+        catch
+            exec a:mods "new"
+            call s:configure_booppad_buffer()
+        endtry
+    endif
+    " if opening from visual mode, paste the copied selection
     if l:from_visual
         silent exec "%delete _ | %put" s:boop_register "| 0delete _"
         call setreg(s:boop_register, l:reg_old_contents)
     endif
 endfun
 
-fun! s:open_boop_pad(mods) abort
-    if g:boop#use_floating
-        call boop#floating#open_scratch()
-        try
-            buffer \[Boop]
-            return
-        catch
-            " new buffer, continue on to set local options and mappings
-        endtry
-    else
-        try
-            exec a:mods "sbuffer \\[Boop]"
-            return
-        catch
-            exec a:mods "new"
-            " new buffer, continue on to set local options and mappings
-        endtry
-    endif
+fun! s:configure_booppad_buffer()
     file \[Boop]
     setlocal nobuflisted buftype=nofile bufhidden=hide noswapfile
     setlocal filetype=boop
+    "TODO: document that g:Boop#use_palette must be set before loading the
+    "plugin
     if g:Boop_use_default_mappings
         if g:boop#use_palette == 'none'
             nnoremap <buffer> <c-b> :%Boop<Space>
@@ -95,6 +99,7 @@ fun! s:open_boop_pad(mods) abort
         endif
     endif
 endfun
+
 
 " Open the boop pad with the most recent selection (using :normal! gv)
 fun! s:BoopPadFromSelection(mods) abort
