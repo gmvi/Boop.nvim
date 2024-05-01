@@ -3,7 +3,7 @@
 project_root="$(dirname $(dirname $0))"
 install_target="$project_root/bin/boop"
 repo="gmvi/Boop.nvim"
-tag="v0.1.0-beta.1"
+tag="v0.1.0-beta.2"
 if [ "$(uname -o)" = "Android" ]; then
     platform="Android $(uname -m)"
 else
@@ -37,6 +37,7 @@ case "$platform" in
 esac
 
 prebuilt_bin_url="https://github.com/$repo/releases/download/$tag/boop-$platform"
+mkdir -p "$(dirname "$install_target")"
 set -e # exit if curl fails
 curl -Lso "$install_target" "$prebuilt_bin_url"
 chmod u+x "$install_target"

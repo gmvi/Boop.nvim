@@ -1,3 +1,3 @@
-[submodule "submodules/Boop-rs"]
-	path = submodules/Boop-rs
-	url = https://github.com/gmvi/Boop-rs
+[submodule "submodules/Boop"]
+	path = submodules/Boop
+	url = https://github.com/IvanMathy/Boop.git

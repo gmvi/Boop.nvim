@@ -2,7 +2,7 @@
 
 SET install_target="%~dp0..\bin\boop.exe"
 SET repo="gmvi/Boop.nvim"
-SET tag="v0.1.0-beta.1"
+SET tag="v0.1.0-beta.2"
 
 reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" > NUL && SET OS=32BIT || SET OS=64BIT
 
@@ -18,6 +18,8 @@ SET prebuilt_bin_url="https://github.com/%repo%/releases/download/%tag%/boop-%pl
 :: but older 64-bit Windows should work, so try to download if curl.exe is available.
 where curl.exe >NUL 2>NUL
 IF NOT ERRORLEVEL 1 (
+    REM : Forcing %install_target% into a %% to enable %%~dp
+    for %%F in (%install_target%) do mkdir %%~dpF
     curl.exe -Lso "%install_target%" "%prebuilt_bin_url%"
 ) ELSE (
     exit /b 107
