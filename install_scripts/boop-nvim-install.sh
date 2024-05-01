@@ -3,7 +3,7 @@
 project_root="$(dirname $(dirname $0))"
 install_target="$project_root/bin/boop"
 repo="gmvi/Boop.nvim"
-tag="v0.1.0-beta.1"
+tag="v0.1.0-beta.2"
 if [ "$(uname -o)" = "Android" ]; then
     platform="Android $(uname -m)"
 else

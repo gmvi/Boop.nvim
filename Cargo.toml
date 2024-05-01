@@ -1,6 +1,6 @@
 [package]
 name = "boop-nvim"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 authors = ["George Matter"]
 edition = "2018"
 description = """@IvanMathy's Boop as a Neovim plugin. Credit to @zoeyfyi for the rust code."""

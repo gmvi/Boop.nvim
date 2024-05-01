@@ -2,7 +2,7 @@
 
 SET install_target="%~dp0..\bin\boop.exe"
 SET repo="gmvi/Boop.nvim"
-SET tag="v0.1.0-beta.1"
+SET tag="v0.1.0-beta.2"
 
 reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" > NUL && SET OS=32BIT || SET OS=64BIT
 
