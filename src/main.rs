@@ -1,16 +1,20 @@
 #![forbid(unsafe_code)]
 
-extern crate boop;
 extern crate clap;
+#[macro_use]
+extern crate log;
+#[macro_use]
 extern crate eyre;
 extern crate fs_extra;
 
+mod executor;
+mod script;
+mod scriptmap;
+mod util;
 mod cli;
 
-use boop::executor::TextReplacement;
-use boop::script;
-use boop::scriptmap::ScriptMap;
-use boop::util;
+use executor::TextReplacement;
+use scriptmap::ScriptMap;
 use cli::Cli;
 
 use eyre::{

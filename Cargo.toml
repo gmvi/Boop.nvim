@@ -1,5 +1,5 @@
 [package]
-name = "boop-vim"
+name = "boop-nvim"
 version = "0.1.0-beta.1"
 authors = ["George Matter"]
 edition = "2018"
